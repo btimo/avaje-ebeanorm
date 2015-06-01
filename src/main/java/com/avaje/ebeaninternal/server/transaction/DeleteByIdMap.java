@@ -6,6 +6,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.avaje.ebean.annotation.IndexEvent;
+import com.avaje.ebeaninternal.elastic.IndexDeleteByIdRequest;
+import com.avaje.ebeaninternal.elastic.IndexUpdates;
 import com.avaje.ebeaninternal.server.core.PersistRequest;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 
@@ -73,4 +76,28 @@ public final class DeleteByIdMap {
   }
 
 
+  /**
+   * Add to the ElasticSearch IndexUpdates.
+   */
+  public void addToIndexUpdates(IndexUpdates indexUpdates) {
+    for (BeanPersistIds deleteIds : beanMap.values()) {
+      BeanDescriptor<?> desc = deleteIds.getBeanDescriptor();
+      IndexEvent indexEvent = desc.getIndexEvent(PersistRequest.Type.DELETE);
+      if (IndexEvent.IGNORE != indexEvent) {
+        // Add to queue or bulk update entries
+        boolean queue = (IndexEvent.QUEUE == indexEvent);
+        String queueId = desc.getElasticQueueId();
+        List<Serializable> idValues = deleteIds.getDeleteIds();
+        if (idValues != null) {
+          for (int i = 0; i < idValues.size(); i++) {
+            if (queue) {
+              indexUpdates.queueDelete(queueId, idValues.get(i));
+            } else {
+              indexUpdates.add(new IndexDeleteByIdRequest(desc, idValues.get(i)));
+            }
+          }
+        }
+      }
+    }
+  }
 }

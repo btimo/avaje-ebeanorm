@@ -44,8 +44,6 @@ import com.fasterxml.jackson.core.JsonFactory;
 /**
  * Used to extend the ServerConfig with additional objects used to configure and
  * construct an EbeanServer.
- * 
- * @author rbygrave
  */
 public class InternalConfiguration {
 
@@ -70,10 +68,6 @@ public class InternalConfiguration {
   private final DeployUtil deployUtil;
 
   private final BeanDescriptorManager beanDescriptorManager;
-
-  private final TransactionManager transactionManager;
-
-  private final TransactionScopeManager transactionScopeManager;
 
   private final CQueryEngine cQueryEngine;
 
@@ -118,36 +112,9 @@ public class InternalConfiguration {
     this.beanDescriptorManager = new BeanDescriptorManager(this);
     beanDescriptorManager.deploy();
 
-    this.transactionManager = createTransactionManager();
-
     this.cQueryEngine = new CQueryEngine(serverConfig.getDatabasePlatform(), binder);
-
-    ExternalTransactionManager externalTransactionManager = serverConfig.getExternalTransactionManager();
-    if (externalTransactionManager == null && serverConfig.isUseJtaTransactionManager()) {
-      externalTransactionManager = new JtaTransactionManager();
-    }
-    if (externalTransactionManager != null) {
-      externalTransactionManager.setTransactionManager(transactionManager);
-      this.transactionScopeManager = new ExternalTransactionScopeManager(transactionManager, externalTransactionManager);
-      logger.info("Using Transaction Manager [" + externalTransactionManager.getClass() + "]");
-    } else {
-      this.transactionScopeManager = new DefaultTransactionScopeManager(transactionManager);
-    }
-
   }
-  
-  /**
-   * Create the TransactionManager taking into account autoCommit mode.
-   */
-  private TransactionManager createTransactionManager() {
-    
-    if (isAutoCommitMode()) {
-      return new AutoCommitTransactionManager(clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
-    }
-    
-    return new TransactionManager(clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
-  }
-  
+
   /**
    * Return true if autoCommit mode is on.
    */
@@ -245,14 +212,6 @@ public class InternalConfiguration {
     return deployUtil;
   }
 
-  public TransactionManager getTransactionManager() {
-    return transactionManager;
-  }
-
-  public TransactionScopeManager getTransactionScopeManager() {
-    return transactionScopeManager;
-  }
-
   public CQueryEngine getCQueryEngine() {
     return cQueryEngine;
   }
@@ -265,4 +224,33 @@ public class InternalConfiguration {
     return backgroundExecutor;
   }
 
+  /**
+   * Create the TransactionManager taking into account autoCommit mode.
+   */
+  public TransactionManager createTransactionManager(SpiEbeanServer server) {
+
+    if (isAutoCommitMode()) {
+      return new AutoCommitTransactionManager(server, clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
+    }
+
+    return new TransactionManager(server, clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
+  }
+
+  /**
+   * Create the TransactionScopeManager taking into account JTA or external transaction manager.
+   */
+  public TransactionScopeManager createTransactionScopeManager(TransactionManager transactionManager) {
+
+    ExternalTransactionManager externalTransactionManager = serverConfig.getExternalTransactionManager();
+    if (externalTransactionManager == null && serverConfig.isUseJtaTransactionManager()) {
+      externalTransactionManager = new JtaTransactionManager();
+    }
+    if (externalTransactionManager != null) {
+      externalTransactionManager.setTransactionManager(transactionManager);
+      logger.info("Using Transaction Manager [" + externalTransactionManager.getClass() + "]");
+      return new ExternalTransactionScopeManager(transactionManager, externalTransactionManager);
+    } else {
+      return new DefaultTransactionScopeManager(transactionManager);
+    }
+  }
 }

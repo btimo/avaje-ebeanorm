@@ -10,6 +10,7 @@ import com.avaje.ebean.cache.ServerCacheManager;
 import com.avaje.ebean.config.EncryptKey;
 import com.avaje.ebean.config.EncryptKeyManager;
 import com.avaje.ebean.config.NamingConvention;
+import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.config.dbplatform.DatabasePlatform;
 import com.avaje.ebean.config.dbplatform.DbIdentity;
 import com.avaje.ebean.config.dbplatform.IdGenerator;
@@ -30,7 +31,6 @@ import com.avaje.ebeaninternal.server.properties.BeanPropertiesReader;
 import com.avaje.ebeaninternal.server.properties.BeanPropertyInfo;
 import com.avaje.ebeaninternal.server.properties.BeanPropertyInfoFactory;
 import com.avaje.ebeaninternal.server.properties.EnhanceBeanPropertyInfoFactory;
-import com.avaje.ebeaninternal.server.type.TypeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,8 +65,6 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private final DeployUtil deployUtil;
 
-  private final TypeManager typeManager;
-
   private final PersistControllerManager persistControllerManager;
 
   private final BeanFinderManager beanFinderManager;
@@ -82,6 +80,8 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
   private final DeployOrmXml deployOrmXml;
 
   private final BeanManagerFactory beanManagerFactory;
+
+  private final ServerConfig serverConfig;
 
   private int enhancedClassCount;
   
@@ -133,29 +133,29 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
    */
   public BeanDescriptorManager(InternalConfiguration config) {
 
-    this.serverName = InternString.intern(config.getServerConfig().getName());
+    this.serverConfig = config.getServerConfig();
+    this.serverName = InternString.intern(serverConfig.getName());
     this.cacheManager = config.getCacheManager();
     this.xmlConfig = config.getXmlConfig();
-    this.dbSequenceBatchSize = config.getServerConfig().getDatabaseSequenceBatchSize();
+    this.dbSequenceBatchSize = serverConfig.getDatabaseSequenceBatchSize();
     this.backgroundExecutor = config.getBackgroundExecutor();
-    this.dataSource = config.getServerConfig().getDataSource();
-    this.encryptKeyManager = config.getServerConfig().getEncryptKeyManager();
-    this.databasePlatform = config.getServerConfig().getDatabasePlatform();
+    this.dataSource = serverConfig.getDataSource();
+    this.encryptKeyManager = serverConfig.getEncryptKeyManager();
+    this.databasePlatform = serverConfig.getDatabasePlatform();
     this.idBinderFactory = new IdBinderFactory(databasePlatform.isIdInExpandedForm());
-    this.eagerFetchLobs = config.getServerConfig().isEagerFetchLobs();
+    this.eagerFetchLobs = serverConfig.isEagerFetchLobs();
 
     this.bootupClasses = config.getBootupClasses();
     this.createProperties = config.getDeployCreateProperties();
-    this.typeManager = config.getTypeManager();
-    this.namingConvention = config.getServerConfig().getNamingConvention();
+    this.namingConvention = serverConfig.getNamingConvention();
     this.dbIdentity = config.getDatabasePlatform().getDbIdentity();
     this.deplyInherit = config.getDeployInherit();
     this.deployOrmXml = config.getDeployOrmXml();
     this.deployUtil = config.getDeployUtil();
 
-    this.beanManagerFactory = new BeanManagerFactory(config.getServerConfig(), config.getDatabasePlatform());
+    this.beanManagerFactory = new BeanManagerFactory(serverConfig, config.getDatabasePlatform());
 
-    this.updateChangesOnly = config.getServerConfig().isUpdateChangesOnly();
+    this.updateChangesOnly = serverConfig.isUpdateChangesOnly();
 
     this.beanLifecycleAdapterFactory = new BeanLifecycleAdapterFactory();
     this.persistControllerManager = new PersistControllerManager(bootupClasses);
@@ -423,7 +423,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
     Integer key = getUniqueHash(info.getDescriptor());
 
-    return new BeanDescriptor<T>(this, typeManager, info.getDescriptor(), key.toString());
+    return new BeanDescriptor<T>(this, info.getDescriptor(), key.toString());
   }
 
   private void registerBeanDescriptor(BeanDescriptor<?> desc) {
@@ -557,7 +557,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
     for (DeployBeanInfo<?> info : deplyInfoMap.values()) {
       DeployBeanDescriptor<?> deployBeanDescriptor = info.getDescriptor();
       Integer key = getUniqueHash(deployBeanDescriptor);
-      registerBeanDescriptor(new BeanDescriptor(this, typeManager, info.getDescriptor(), key.toString()));
+      registerBeanDescriptor(new BeanDescriptor(this, info.getDescriptor(), key.toString()));
     }
   }
 
@@ -953,7 +953,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
    */
   private <T> DeployBeanInfo<T> createDeployBeanInfo(Class<T> beanClass) {
 
-    DeployBeanDescriptor<T> desc = new DeployBeanDescriptor<T>(beanClass);
+    DeployBeanDescriptor<T> desc = new DeployBeanDescriptor<T>(beanClass, serverConfig);
 
     desc.setUpdateChangesOnly(updateChangesOnly);
 
@@ -1374,18 +1374,13 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
    * If so it is ok for it not to be enhanced.
    */
   private boolean isMappedSuperWithNoProperties(Class<?> beanClass) {
-    
-    MappedSuperclass annotation = beanClass.getAnnotation(MappedSuperclass.class);
-    if (annotation == null) {
+
+    if (beanClass.getAnnotation(MappedSuperclass.class) == null) {
       return false;
     }
     Field[] fields = beanClass.getDeclaredFields();
     for (Field field : fields) {
-      if (Modifier.isStatic(field.getModifiers()) || Modifier.isTransient(field.getModifiers())) {
-        // ignore this field
-      } else if (field.isAnnotationPresent(Transient.class)) {
-        // ignore this field
-      } else {
+      if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isTransient(field.getModifiers()) && !field.isAnnotationPresent(Transient.class)) {
         return false;
       }
     }

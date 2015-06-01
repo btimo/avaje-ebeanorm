@@ -3,6 +3,7 @@ package com.avaje.ebeaninternal.server.transaction;
 import com.avaje.ebeaninternal.api.TransactionEvent;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
 import com.avaje.ebeaninternal.api.TransactionEventTable.TableIUD;
+import com.avaje.ebeaninternal.elastic.IndexUpdates;
 import com.avaje.ebeaninternal.server.cluster.ClusterManager;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
@@ -37,14 +38,17 @@ public final class PostCommitProcessing {
 
   private final DeleteByIdMap deleteByIdMap;
 
+  private final boolean skipIndexUpdates;
+
   /**
    * Create for a TransactionManager and event.
    */
-  public PostCommitProcessing(ClusterManager clusterManager, TransactionManager manager, TransactionEvent event) {
+  public PostCommitProcessing(ClusterManager clusterManager, TransactionManager manager, TransactionEvent event, boolean skipIndexUpdates) {
 
     this.clusterManager = clusterManager;
     this.manager = manager;
     this.serverName = manager.getServerName();
+    this.skipIndexUpdates = skipIndexUpdates;
     this.event = event;
     this.deleteByIdMap = event.getDeleteByIdMap();
     this.persistBeanRequests = event.getPersistRequestBeans();
@@ -76,6 +80,24 @@ public final class PostCommitProcessing {
     }
   }
 
+  /**
+   * Process any ElasticSearch index updates.
+   */
+  protected void processIndexUpdates() {
+
+    if (!skipIndexUpdates) {
+      // collect 'bulk update' and 'queue' events
+      IndexUpdates indexUpdates = new IndexUpdates();
+      event.addToIndexUpdates(indexUpdates);
+      if (deleteByIdMap != null) {
+        deleteByIdMap.addToIndexUpdates(indexUpdates);
+      }
+
+      // send to ElasticSearch Bulk API and/or queue
+      manager.processIndexUpdates(indexUpdates);
+    }
+  }
+
   public void notifyCluster() {
     if (remoteTransactionEvent != null && !remoteTransactionEvent.isEmpty()) {
       // send the interesting events to the cluster
@@ -91,6 +113,7 @@ public final class PostCommitProcessing {
     return new Runnable() {
       public void run() {
         localPersistListenersNotify();
+        processIndexUpdates();
       }
     };
   }

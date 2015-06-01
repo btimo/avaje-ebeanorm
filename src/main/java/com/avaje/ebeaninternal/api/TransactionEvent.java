@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.api;
 
+import com.avaje.ebeaninternal.elastic.IndexUpdates;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.transaction.DeleteByIdMap;
@@ -120,4 +121,17 @@ public class TransactionEvent implements Serializable {
     }
   }
 
+  /**
+   * Add any relevant PersistRequestBean's to IndexUpdates for later processing.
+   */
+  public void addToIndexUpdates(IndexUpdates indexUpdates) {
+
+    List<PersistRequestBean<?>> persistRequestBeans = getPersistRequestBeans();
+    if (persistRequestBeans != null) {
+      // Add these to either process via queue or via Bulk update API
+      for (int i=0; i< persistRequestBeans.size(); i++) {
+        persistRequestBeans.get(i).addToIndexUpdates(indexUpdates);
+      }
+    }
+  }
 }

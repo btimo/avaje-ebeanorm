@@ -4,6 +4,7 @@ import java.sql.Connection;
 
 import com.avaje.ebean.BackgroundExecutor;
 import com.avaje.ebean.config.ServerConfig;
+import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.server.cluster.ClusterManager;
 import com.avaje.ebeaninternal.server.core.BootupClasses;
@@ -16,10 +17,10 @@ import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
  */
 public class AutoCommitTransactionManager extends TransactionManager {
 
-  public AutoCommitTransactionManager(ClusterManager clusterManager, BackgroundExecutor backgroundExecutor,
+  public AutoCommitTransactionManager(SpiEbeanServer server, ClusterManager clusterManager, BackgroundExecutor backgroundExecutor,
       ServerConfig config, BeanDescriptorManager descMgr, BootupClasses bootupClasses) {
     
-    super(clusterManager, backgroundExecutor, config, descMgr, bootupClasses);
+    super(server, clusterManager, backgroundExecutor, config, descMgr, bootupClasses);
   }
 
   /**
@@ -31,6 +32,4 @@ public class AutoCommitTransactionManager extends TransactionManager {
     return new AutoCommitJdbcTransaction(prefix + id, explicit, c, this);
   }
 
-  
-  
 }

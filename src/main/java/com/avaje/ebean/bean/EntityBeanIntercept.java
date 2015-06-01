@@ -556,6 +556,23 @@ public final class EntityBeanIntercept implements Serializable {
   }
 
   /**
+   * Return the array of flags indicating the dirty properties.
+   */
+  public boolean[] getDirtyProperties() {
+    int len = getPropertyLength();
+    boolean[] dirties = new boolean[len];
+    for (int i = 0; i < len; i++) {
+      if (changedProps != null && changedProps[i]) {
+        dirties[i] = true;
+      } else if (embeddedDirty != null && embeddedDirty[i]) {
+        // an embedded property has been changed - recurse
+        dirties[i] = true;
+      }
+    }
+    return dirties;
+  }
+
+  /**
    * Return the set of dirty properties.
    */
   public Set<String> getDirtyPropertyNames() {

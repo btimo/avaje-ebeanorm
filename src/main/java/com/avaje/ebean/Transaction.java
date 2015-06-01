@@ -1,5 +1,6 @@
 package com.avaje.ebean;
 
+import com.avaje.ebean.annotation.IndexEvent;
 import com.avaje.ebean.config.PersistBatch;
 
 import javax.persistence.OptimisticLockException;
@@ -81,6 +82,15 @@ public interface Transaction extends Closeable {
    * Return true if the transaction is active.
    */
   boolean isActive();
+
+  /**
+   * Set the behavior for ElasticSearch index updates on this transaction.
+   * <p>
+   *   For example, set the mode to IndexEvent.IGNORE for this transaction and
+   *   manually specify a bulk index invalidation.
+   * </p>
+   */
+  void setIndexUpdateMode(IndexEvent indexUpdateMode);
 
   /**
    * Explicitly turn off or on the cascading nature of save() and delete(). This

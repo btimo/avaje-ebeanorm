@@ -1,6 +1,9 @@
 package com.avaje.ebeaninternal.server.deploy.meta;
 
 import com.avaje.ebean.annotation.ConcurrencyMode;
+import com.avaje.ebean.annotation.ElasticIndex;
+import com.avaje.ebean.annotation.IndexEvent;
+import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.config.TableName;
 import com.avaje.ebean.config.dbplatform.IdGenerator;
 import com.avaje.ebean.config.dbplatform.IdType;
@@ -11,7 +14,6 @@ import com.avaje.ebean.event.BeanQueryAdapter;
 import com.avaje.ebeaninternal.server.core.CacheOptions;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
 import com.avaje.ebeaninternal.server.deploy.*;
-import com.avaje.ebeaninternal.server.properties.BeanPropertyInfo;
 
 import javax.persistence.Entity;
 import javax.persistence.MappedSuperclass;
@@ -36,6 +38,13 @@ public class DeployBeanDescriptor<T> {
   private static final PropOrder PROP_ORDER = new PropOrder();
 
   private static final String I_SCALAOBJECT = "scala.ScalaObject";
+
+  private final ServerConfig serverConfig;
+
+  /**
+   * The EntityBean type used to create new EntityBeans.
+   */
+  private final Class<T> beanType;
 
   /**
    * Map of BeanProperty Linked so as to preserve order.
@@ -95,11 +104,6 @@ public class DeployBeanDescriptor<T> {
 
   private String[] properties;
 
-  /**
-   * The EntityBean type used to create new EntityBeans.
-   */
-  private Class<T> beanType;
-
   private List<BeanPersistController> persistControllers = new ArrayList<BeanPersistController>(2);
   private List<BeanPersistListener> persistListeners = new ArrayList<BeanPersistListener>(2);
   private List<BeanQueryAdapter> queryAdapters = new ArrayList<BeanQueryAdapter>(2);
@@ -126,9 +130,26 @@ public class DeployBeanDescriptor<T> {
   private boolean processedRawSqlExtend;
 
   /**
+   * One of NONE, INDEX or EMBEDDED.
+   */
+  private BeanElasticType elasticType = BeanElasticType.NONE;
+
+  private String elasticQueueId;
+
+  private String elasticIndexName;
+
+  private String elasticIndexType;
+
+  private IndexEvent elasticPersist;
+  private IndexEvent elasticInsert;
+  private IndexEvent elasticUpdate;
+  private IndexEvent elasticDelete;
+
+  /**
    * Construct the BeanDescriptor.
    */
-  public DeployBeanDescriptor(Class<T> beanType) {
+  public DeployBeanDescriptor(Class<T> beanType, ServerConfig serverConfig) {
+    this.serverConfig = serverConfig;
     this.beanType = beanType;
   }
 
@@ -137,6 +158,18 @@ public class DeployBeanDescriptor<T> {
    */
   public boolean isAbstract() {
     return Modifier.isAbstract(beanType.getModifiers());
+  }
+
+  public void readElasticIndex(ElasticIndex elasticIndex) {
+
+    elasticType = BeanElasticType.INDEX;
+    elasticQueueId = elasticIndex.queueId();
+    elasticIndexName = elasticIndex.indexName();
+    elasticIndexType = elasticIndex.indexType();
+    elasticPersist = elasticIndex.persist();
+    elasticInsert = elasticIndex.insert();
+    elasticUpdate = elasticIndex.update();
+    elasticDelete = elasticIndex.delete();
   }
 
   public boolean isScalaObject() {
@@ -743,10 +776,10 @@ public class DeployBeanDescriptor<T> {
   }
 
   /**
-   * Check valid mapping annotations on the class hierarchy. 
+   * Check valid mapping annotations on the class hierarchy.
    */
   private void checkInheritance(Class<?> beanType) {
-    
+
     Class<?> parent = beanType.getSuperclass();
     if (parent == null || Object.class.equals(parent)) {
       // all good
@@ -760,5 +793,51 @@ public class DeployBeanDescriptor<T> {
       // continue checking
       checkInheritance(parent);
     }
+  }
+
+  public BeanElasticType getElasticType() {
+    return elasticType;
+  }
+
+  public String getElasticQueueId() {
+    return elasticQueueId;
+  }
+
+  public String getElasticIndexName() {
+    return elasticIndexName;
+  }
+
+  public String getElasticIndexType() {
+    return elasticIndexType;
+  }
+
+  /**
+   * Return the ElasticSearch index behavior for bean inserts.
+   */
+  public IndexEvent getElasticInsertEvent() {
+    return getElasticIndexEvent(elasticInsert);
+  }
+
+  /**
+   * Return the ElasticSearch index behavior for bean updates.
+   */
+  public IndexEvent getElasticUpdateEvent() {
+    return getElasticIndexEvent(elasticUpdate);
+  }
+
+  /**
+   * Return the ElasticSearch index behavior for bean deletes.
+   */
+  public IndexEvent getElasticDeleteEvent() {
+    return getElasticIndexEvent(elasticDelete);
+  }
+
+  private IndexEvent getElasticIndexEvent(IndexEvent mostSpecific) {
+    if (elasticType == BeanElasticType.NONE) {
+      return IndexEvent.IGNORE;
+    }
+    if (mostSpecific != null) return mostSpecific;
+    if (elasticPersist != null) return elasticPersist;
+    return serverConfig.getElasticConfig().getPersist();
   }
 }

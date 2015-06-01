@@ -7,12 +7,7 @@ import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-import com.avaje.ebean.annotation.CacheStrategy;
-import com.avaje.ebean.annotation.CacheTuning;
-import com.avaje.ebean.annotation.EntityConcurrencyMode;
-import com.avaje.ebean.annotation.NamedUpdate;
-import com.avaje.ebean.annotation.NamedUpdates;
-import com.avaje.ebean.annotation.UpdateMode;
+import com.avaje.ebean.annotation.*;
 import com.avaje.ebean.config.TableName;
 import com.avaje.ebeaninternal.server.core.CacheOptions;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
@@ -82,6 +77,11 @@ public class AnnotationClass extends AnnotationParser {
           descriptor.addCompoundUniqueConstraint(new CompoundUniqueContraint(c.columnNames()));
         }
       }
+    }
+
+    ElasticIndex elasticIndex = cls.getAnnotation(ElasticIndex.class);
+    if (elasticIndex != null) {
+      descriptor.readElasticIndex(elasticIndex);
     }
 
     UpdateMode updateMode = cls.getAnnotation(UpdateMode.class);

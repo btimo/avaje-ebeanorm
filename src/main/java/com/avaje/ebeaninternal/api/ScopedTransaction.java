@@ -1,6 +1,7 @@
 package com.avaje.ebeaninternal.api;
 
 import com.avaje.ebean.TransactionCallback;
+import com.avaje.ebean.annotation.IndexEvent;
 import com.avaje.ebean.bean.PersistenceContext;
 import com.avaje.ebean.config.PersistBatch;
 import com.avaje.ebeaninternal.server.core.PersistRequest;
@@ -55,6 +56,16 @@ public class ScopedTransaction implements SpiTransaction {
     } finally {
       scopeTrans.restoreSuspended();
     }
+  }
+
+  @Override
+  public IndexEvent getIndexUpdateMode() {
+    return transaction.getIndexUpdateMode();
+  }
+
+  @Override
+  public void setIndexUpdateMode(IndexEvent indexUpdateMode) {
+    transaction.setIndexUpdateMode(indexUpdateMode);
   }
 
   @Override

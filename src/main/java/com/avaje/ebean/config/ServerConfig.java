@@ -113,6 +113,11 @@ public class ServerConfig {
    */
   private String classPathReaderClassName;
 
+  /**
+   * Configuration for the ElasticSearch integration.
+   */
+  private ElasticConfig elasticConfig = new ElasticConfig();
+
   /** 
    * Config controlling the autofetch behaviour.
    */
@@ -216,7 +221,7 @@ public class ServerConfig {
   private NamingConvention namingConvention = new UnderscoreNamingConvention();
 
   /** 
-   * Behaviour of update to include on the change properties. 
+   * Behaviour of update to include on the change properties.
    */
   private boolean updateChangesOnly = true;
   
@@ -857,6 +862,20 @@ public class ServerConfig {
    */
   public void setNamingConvention(NamingConvention namingConvention) {
     this.namingConvention = namingConvention;
+  }
+
+  /**
+   * Return the configuration for the ElasticSearch integration.
+   */
+  public ElasticConfig getElasticConfig() {
+    return elasticConfig;
+  }
+
+  /**
+   * Set the configuration for the ElasticSearch integration.
+   */
+  public void setElasticConfig(ElasticConfig elasticConfig) {
+    this.elasticConfig = elasticConfig;
   }
 
   /**
@@ -1705,6 +1724,13 @@ public class ServerConfig {
    */
   protected void loadDataSourceSettings(PropertiesWrapper p) {
     dataSourceConfig.loadSettings(p.withPrefix("datasource"));
+  }
+
+  /**
+   * This is broken out for the same reason as above - preserve existing behaviour but let it be overridden.
+   */
+  protected void loadElasticSettings(PropertiesWrapper p) {
+    elasticConfig.loadSettings(p);
   }
 
   /**

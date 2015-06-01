@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.core;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,7 @@ import javax.persistence.OptimisticLockException;
 
 import com.avaje.ebean.ValuePair;
 import com.avaje.ebean.annotation.ConcurrencyMode;
+import com.avaje.ebean.annotation.IndexEvent;
 import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.bean.EntityBeanIntercept;
 import com.avaje.ebean.event.BeanPersistController;
@@ -19,6 +21,8 @@ import com.avaje.ebeaninternal.api.DerivedRelationshipData;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEvent;
+import com.avaje.ebeaninternal.elastic.BulkElasticUpdate;
+import com.avaje.ebeaninternal.elastic.base.BulkElasticRequest;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.BeanManager;
 import com.avaje.ebeaninternal.server.deploy.BeanProperty;
@@ -28,11 +32,12 @@ import com.avaje.ebeaninternal.server.persist.PersistExecute;
 import com.avaje.ebeaninternal.server.persist.dml.GenerateDmlRequest;
 import com.avaje.ebeaninternal.server.transaction.BeanDelta;
 import com.avaje.ebeaninternal.server.transaction.BeanPersistIdMap;
+import com.avaje.ebeaninternal.elastic.IndexUpdates;
 
 /**
  * PersistRequest for insert update or delete of a bean.
  */
-public final class PersistRequestBean<T> extends PersistRequest implements BeanPersistRequest<T> {
+public final class PersistRequestBean<T> extends PersistRequest implements BeanPersistRequest<T>, BulkElasticRequest {
 
   private final BeanManager<T> beanManager;
 
@@ -63,6 +68,8 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
   private final Object parentBean;
 
   private final boolean dirty;
+
+  private final IndexEvent indexEvent;
 
   private ConcurrencyMode concurrencyMode;
 
@@ -103,6 +110,11 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
   private Set<String> updatedProperties;
 
   /**
+   * Flags indicating the dirty properties on the bean.
+   */
+  private boolean[] dirtyProperties;
+
+  /**
    * Flag set when request is added to JDBC batch.
    */
   private boolean batched;
@@ -130,6 +142,7 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
     this.parentBean = parentBean;
     this.controller = beanDescriptor.getPersistController();
     this.type = type;
+    this.indexEvent = beanDescriptor.getIndexEvent(type);
     
     if (saveRecurse) {
       this.persistCascade = t.isPersistCascade();
@@ -208,6 +221,13 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
     return intercept.getLoadedPropertyNames();
   }
 
+  /**
+   * Return the dirty properties on this request.
+   */
+  public boolean[] getDirtyProperties() {
+    return dirtyProperties;
+  }
+
   @Override
   public Set<String> getUpdatedProperties() {
     return intercept.getDirtyPropertyNames();
@@ -220,7 +240,16 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
 
   public boolean isNotify() {
     this.notifyCache = beanDescriptor.isCacheNotify();
-    return notifyCache || isNotifyPersistListener();
+    return notifyCache || isNotifyPersistListener() || isElasticNotify();
+  }
+
+  /**
+   * Return true if this request should updateAdd an ElasticSearch index
+   * by queuing an event or direct updateAdd (via Bulk API).
+   */
+  private boolean isElasticNotify() {
+    // Either Queue or Update the ElasticSearch index
+    return indexEvent != IndexEvent.IGNORE;
   }
 
   public boolean isNotifyPersistListener() {
@@ -245,6 +274,46 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
       default:
         throw new IllegalStateException("Invalid type " + type);
       }
+    }
+  }
+
+  /**
+   * Add appropriate JSON content for sending to the ElasticSearch Bulk API.
+   */
+  public void elasticBulkUpdate(BulkElasticUpdate txn) throws IOException {
+
+    switch (type) {
+      case INSERT:
+        beanDescriptor.elasticInsert(idValue, this, txn);
+        break;
+      case UPDATE:
+        beanDescriptor.elasticUpdate(idValue, this, txn);
+        break;
+      case DELETE:
+        beanDescriptor.elasticDelete(idValue, this, txn);
+        break;
+      default:
+        throw new IllegalStateException("Invalid type " + type);
+    }
+  }
+
+  /**
+   * Add this event to the queue entries in IndexUpdates.
+   */
+  @Override
+  public void addToQueue(IndexUpdates indexUpdates) {
+    switch (type) {
+      case INSERT:
+        indexUpdates.queueIndex(beanDescriptor.getElasticQueueId(), idValue);
+        break;
+      case UPDATE:
+        indexUpdates.queueIndex(beanDescriptor.getElasticQueueId(), idValue);
+        break;
+      case DELETE:
+        indexUpdates.queueDelete(beanDescriptor.getElasticQueueId(), idValue);
+        break;
+      default:
+        throw new IllegalStateException("Invalid type " + type);
     }
   }
 
@@ -447,6 +516,9 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
       return -1;
 
     case UPDATE:
+      if (indexEvent == IndexEvent.UPDATE) {
+        dirtyProperties = intercept.getDirtyProperties();
+      }
       if (beanPersistListener != null) {
         // store the updated properties for sending later
         updatedProperties = getUpdatedProperties();
@@ -706,4 +778,24 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
     return updatedManysOnly;
   }
 
+  /**
+   * For requests that update ElasticSearch indexes add this event to either the list
+   * of queue events or list of update events.
+   */
+  public void addToIndexUpdates(IndexUpdates indexUpdates) {
+
+    switch (indexEvent) {
+      case UPDATE: {
+        indexUpdates.add(this);
+        return;
+      }
+      case QUEUE: {
+        if (type == Type.DELETE) {
+          indexUpdates.queueDelete(beanDescriptor.getElasticQueueId(), idValue);
+        } else {
+          indexUpdates.queueIndex(beanDescriptor.getElasticQueueId(), idValue);
+        }
+      }
+    }
+  }
 }

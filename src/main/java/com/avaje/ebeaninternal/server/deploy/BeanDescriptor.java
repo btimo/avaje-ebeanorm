@@ -3,6 +3,7 @@ package com.avaje.ebeaninternal.server.deploy;
 import com.avaje.ebean.SqlUpdate;
 import com.avaje.ebean.Transaction;
 import com.avaje.ebean.annotation.ConcurrencyMode;
+import com.avaje.ebean.annotation.IndexEvent;
 import com.avaje.ebean.bean.BeanCollection;
 import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.bean.EntityBeanIntercept;
@@ -18,12 +19,9 @@ import com.avaje.ebean.meta.MetaBeanInfo;
 import com.avaje.ebean.meta.MetaQueryPlanStatistic;
 import com.avaje.ebeaninternal.api.*;
 import com.avaje.ebeaninternal.api.TransactionEventTable.TableIUD;
+import com.avaje.ebeaninternal.elastic.BulkElasticUpdate;
 import com.avaje.ebeaninternal.server.cache.CachedBeanData;
-import com.avaje.ebeaninternal.server.cache.CachedManyIds;
-import com.avaje.ebeaninternal.server.core.CacheOptions;
-import com.avaje.ebeaninternal.server.core.DefaultSqlUpdate;
-import com.avaje.ebeaninternal.server.core.InternString;
-import com.avaje.ebeaninternal.server.core.PersistRequestBean;
+import com.avaje.ebeaninternal.server.core.*;
 import com.avaje.ebeaninternal.server.deploy.id.IdBinder;
 import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanPropertyLists;
@@ -34,7 +32,6 @@ import com.avaje.ebeaninternal.server.query.SplitName;
 import com.avaje.ebeaninternal.server.querydefn.OrmQueryDetail;
 import com.avaje.ebeaninternal.server.text.json.WriteJson;
 import com.avaje.ebeaninternal.server.type.DataBind;
-import com.avaje.ebeaninternal.server.type.TypeManager;
 import com.avaje.ebeaninternal.util.SortByClause;
 import com.avaje.ebeaninternal.util.SortByClause.Property;
 import com.avaje.ebeaninternal.util.SortByClauseParser;
@@ -255,11 +252,6 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
    */
   private boolean deleteRecurseSkippable;
 
-  /**
-   * Make the TypeManager available for helping SqlSelect.
-   */
-  private final TypeManager typeManager;
-
   private final EntityBean prototypeEntityBean;
   
   private final IdBinder idBinder;
@@ -282,10 +274,13 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   private final boolean updateChangesOnly;
 
   private final boolean cacheSharableBeans;
+
+  private final String elasticQueueId;
   
   private final BeanDescriptorCacheHelp<T> cacheHelp;
   private final BeanDescriptorJsonHelp<T> jsonHelp;
-  
+  private final BeanDescriptorElasticHelp<T> elasticHelp;
+
   private final String defaultSelectClause;
   private final Set<String> defaultSelectClauseSet;
 
@@ -296,7 +291,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   /**
    * Construct the BeanDescriptor.
    */
-  public BeanDescriptor(BeanDescriptorMap owner, TypeManager typeManager, DeployBeanDescriptor<T> deploy, String descriptorId) {
+  public BeanDescriptor(BeanDescriptorMap owner, DeployBeanDescriptor<T> deploy, String descriptorId) {
 
     this.owner = owner;
     this.serverName = owner.getServerName();
@@ -308,7 +303,6 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
     this.fullName = InternString.intern(deploy.getFullName());
     this.descriptorId = descriptorId;
 
-    this.typeManager = typeManager;
     this.beanType = deploy.getBeanType();
     this.prototypeEntityBean = createPrototypeEntityBean(beanType);
     
@@ -370,11 +364,14 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
     this.derivedTableJoins = listHelper.getTableJoin();
 
     boolean noRelationships = propertiesOne.length + propertiesMany.length == 0;
-    
+
     this.cacheSharableBeans = noRelationships && deploy.getCacheOptions().isReadOnly();
     this.cacheHelp = new BeanDescriptorCacheHelp<T>(this, owner.getCacheManager(), deploy.getCacheOptions(), cacheSharableBeans, propertiesOneImported);
     this.jsonHelp = new BeanDescriptorJsonHelp<T>(this);
-    
+
+    this.elasticHelp = new BeanDescriptorElasticHelp<T>(this, deploy);
+    this.elasticQueueId = elasticHelp.getQueueId();
+
     // Check if there are no cascade save associated beans ( subject to change
     // in initialiseOther()). Note that if we are in an inheritance hierarchy 
     // then we also need to check every BeanDescriptors in the InheritInfo as 
@@ -427,9 +424,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
     
     // populate a smaller/minimal array
     int[] unload = new int[pos];
-    for (int i = 0; i < pos; i++) {
-      unload[i] = props[i];
-    }
+    System.arraycopy(props, 0, unload, 0, pos);
     return unload;
   }
   
@@ -445,19 +440,6 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
     } catch (Exception e) {
       throw new IllegalStateException("Error trying to create the prototypeEntityBean for "+beanType, e);
     }
-  }
-  
-  private LinkedHashMap<String, BeanProperty> getReverseMap(LinkedHashMap<String, BeanProperty> propMap) {
-
-    LinkedHashMap<String, BeanProperty> revMap = new LinkedHashMap<String, BeanProperty>(propMap.size() * 2);
-
-    for (BeanProperty prop : propMap.values()) {
-      if (prop.getDbColumn() != null) {
-        revMap.put(prop.getDbColumn(), prop);
-      }
-    }
-
-    return revMap;
   }
 
   /**
@@ -634,7 +616,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   }
 
   public boolean calculateUseCache(Boolean queryUseCache) {
-    return (queryUseCache != null) ? queryUseCache.booleanValue() : isBeanCaching();
+    return (queryUseCache != null) ? queryUseCache : isBeanCaching();
   }
 
   /**
@@ -693,6 +675,36 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
    */
   public boolean isInheritanceRoot() {
     return inheritInfo == null || inheritInfo.isRoot();
+  }
+
+  /**
+   * Return the queueId used to uniquely identify this type when queuing an index updateAdd.
+   */
+  public String getElasticQueueId() {
+    return elasticQueueId;
+  }
+
+  /**
+   * Return the type of ElasticSearch indexEvent that should occur for this type of persist request.
+   */
+  public IndexEvent getIndexEvent(PersistRequest.Type persistType) {
+    return elasticHelp.getIndexEvent(persistType);
+  }
+
+  public void elasticInsert(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
+    elasticHelp.insert(idValue, persistRequest, txn);
+  }
+
+  public void elasticUpdate(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
+    elasticHelp.update(idValue, persistRequest, txn);
+  }
+
+  public void elasticDelete(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
+    elasticHelp.delete(idValue, persistRequest, txn);
+  }
+
+  public void elasticDeleteById(Object idValue, BulkElasticUpdate txn) throws IOException {
+    elasticHelp.deleteById(idValue, txn);
   }
 
   /**
@@ -1879,6 +1891,14 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
    */
   public BeanProperty[] propertiesLocal() {
     return propertiesLocal;
+  }
+
+  public void jsonWriteDirty(WriteJson writeJson, EntityBean bean, boolean[] dirtyProps) throws IOException {
+    jsonHelp.jsonWriteDirty(writeJson, bean, dirtyProps);
+  }
+
+  protected void jsonWriteDirtyProperties(WriteJson writeJson, EntityBean bean, boolean[] dirtyProps) throws IOException {
+    jsonHelp.jsonWriteDirtyProperties(writeJson, bean, dirtyProps);
   }
 
   public void jsonWrite(WriteJson writeJson, EntityBean bean) throws IOException {

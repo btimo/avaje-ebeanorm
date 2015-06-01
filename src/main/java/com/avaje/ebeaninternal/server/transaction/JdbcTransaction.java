@@ -1,6 +1,7 @@
 package com.avaje.ebeaninternal.server.transaction;
 
 import com.avaje.ebean.TransactionCallback;
+import com.avaje.ebean.annotation.IndexEvent;
 import com.avaje.ebean.bean.PersistenceContext;
 import com.avaje.ebean.config.PersistBatch;
 import com.avaje.ebeaninternal.api.DerivedRelationshipData;
@@ -132,6 +133,12 @@ public class JdbcTransaction implements SpiTransaction {
   protected boolean batchOnCascadeSet;
 
   /**
+   * The mode for updating ElasticSearch indexes for this transaction.
+   * Only set when you want to override the default behavior.
+   */
+  protected IndexEvent indexUpdateMode;
+
+  /**
    * Create a new JdbcTransaction.
    */
   public JdbcTransaction(String id, boolean explicit, Connection connection, TransactionManager manager) {
@@ -230,6 +237,15 @@ public class JdbcTransaction implements SpiTransaction {
         }
       }
     }
+  }
+
+  public IndexEvent getIndexUpdateMode() {
+    return indexUpdateMode;
+  }
+
+  @Override
+  public void setIndexUpdateMode(IndexEvent indexUpdateMode) {
+    this.indexUpdateMode = indexUpdateMode;
   }
 
   @Override

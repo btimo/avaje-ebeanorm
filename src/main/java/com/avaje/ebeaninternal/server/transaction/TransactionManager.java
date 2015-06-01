@@ -1,18 +1,26 @@
 package com.avaje.ebeaninternal.server.transaction;
 
 import com.avaje.ebean.BackgroundExecutor;
+import com.avaje.ebean.annotation.IndexEvent;
 import com.avaje.ebean.config.PersistBatch;
 import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.config.dbplatform.DatabasePlatform.OnQueryOnly;
 import com.avaje.ebean.event.TransactionEventListener;
+import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEvent;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
 import com.avaje.ebeaninternal.api.TransactionEventTable.TableIUD;
+import com.avaje.ebeaninternal.elastic.IndexQueue;
+import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
+import com.avaje.ebeaninternal.elastic.IndexUpdates;
+import com.avaje.ebeaninternal.elastic.base.BaseIndexQueue;
+import com.avaje.ebeaninternal.elastic.base.BaseIndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.cluster.ClusterManager;
 import com.avaje.ebeaninternal.server.core.BootupClasses;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
 import com.avaje.ebeaninternal.server.lib.sql.DataSourcePool;
+import com.fasterxml.jackson.core.JsonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +74,8 @@ public class TransactionManager {
 
   protected final String serverName;
 
+  protected final IndexUpdateProcessor indexUpdateProcessor;
+
   protected final PersistBatch persistBatch;
 
   protected final PersistBatch persistBatchOnCascade;
@@ -79,11 +89,12 @@ public class TransactionManager {
 
   protected final TransactionEventListener[] transactionEventListeners;
 
+
   /**
    * Create the TransactionManager
    */
-  public TransactionManager(ClusterManager clusterManager, BackgroundExecutor backgroundExecutor, ServerConfig config,
-                            BeanDescriptorManager descMgr, BootupClasses bootupClasses) {
+  public TransactionManager(SpiEbeanServer server, ClusterManager clusterManager, BackgroundExecutor backgroundExecutor,
+                            ServerConfig config, BeanDescriptorManager descMgr, BootupClasses bootupClasses) {
 
     this.persistBatch = config.getPersistBatch();
     this.persistBatchOnCascade = config.appliedPersistBatchOnCascade();
@@ -92,11 +103,11 @@ public class TransactionManager {
     this.serverName = config.getName();
     this.backgroundExecutor = backgroundExecutor;
     this.dataSource = config.getDataSource();
+    this.indexUpdateProcessor = createIndexUpdateProcessor(server);
     this.bulkEventListenerMap = new BulkEventListenerMap(config.getBulkTableEventListeners());
 
     List<TransactionEventListener> transactionEventListeners = bootupClasses.getTransactionEventListeners();
-    this.transactionEventListeners = transactionEventListeners.toArray(new
-            TransactionEventListener[transactionEventListeners.size()]);
+    this.transactionEventListeners = transactionEventListeners.toArray(new TransactionEventListener[transactionEventListeners.size()]);
 
     this.prefix = "";
     this.externalTransPrefix = "e";
@@ -104,6 +115,14 @@ public class TransactionManager {
     this.onQueryOnly = initOnQueryOnly(config.getDatabasePlatform().getOnQueryOnly(), dataSource);
 
     initialiseHeartbeat();
+  }
+
+  private IndexUpdateProcessor createIndexUpdateProcessor(SpiEbeanServer server) {
+
+    //TODO: Move this out ...
+    JsonFactory jsonFactory = new JsonFactory();
+    IndexQueue indexQueue = new BaseIndexQueue(server, "eb_elastic_queue");
+    return new BaseIndexUpdateProcessor(indexQueue, jsonFactory);
   }
 
   private void initialiseHeartbeat() {
@@ -158,8 +177,7 @@ public class TransactionManager {
     if (OnQueryOnly.CLOSE.equals(dbPlatformOnQueryOnly)) {
       // check for read committed isolation level
       if (!isReadCommitedIsolation(ds)) {
-        logger.warn("Ignoring DatabasePlatform.OnQueryOnly.CLOSE as the transaction Isolation Level is not " +
-								"READ_COMMITTED");
+        logger.warn("Ignoring DatabasePlatform.OnQueryOnly.CLOSE as the transaction Isolation Level is not READ_COMMITTED");
         // we will just use ROLLBACK and ignore the desired optimisation
         return OnQueryOnly.ROLLBACK;
       } else {
@@ -372,7 +390,7 @@ public class TransactionManager {
         TXN_LOGGER.debug(transaction.getLogPrefix() + "Commit");
       }
 
-      PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, transaction.getEvent());
+      PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, transaction.getEvent(), isSkipIndexUpdates(transaction));
 
       postCommit.notifyLocalCacheIndex();
       postCommit.notifyCluster();
@@ -390,6 +408,14 @@ public class TransactionManager {
   }
 
   /**
+   * Return true if ElasticSearch index updates should be skipped for this transaction.
+   */
+  private boolean isSkipIndexUpdates(SpiTransaction transaction) {
+    IndexEvent mode = transaction.getIndexUpdateMode();
+    return mode == null || mode == IndexEvent.IGNORE;
+  }
+
+  /**
    * Process a Transaction that comes from another framework or local code.
    * <p>
    * For cases where raw SQL/JDBC or other frameworks are used this can
@@ -401,7 +427,7 @@ public class TransactionManager {
     TransactionEvent event = new TransactionEvent();
     event.add(tableEvents);
 
-    PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, event);
+    PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, event, true);
 
     // invalidate parts of local cache and index
     postCommit.notifyLocalCacheIndex();
@@ -435,4 +461,11 @@ public class TransactionManager {
     }
   }
 
+  /**
+   * Process the ElasticSearch index updates.
+   */
+  public void processIndexUpdates(IndexUpdates indexUpdates) {
+
+    indexUpdateProcessor.process(indexUpdates);
+  }
 }

@@ -185,8 +185,8 @@ public final class DefaultServer implements SpiEbeanServer {
     this.maxCallStack = serverConfig.getMaxCallStack();
 
     this.rollbackOnChecked = serverConfig.isTransactionRollbackOnChecked();
-    this.transactionManager = config.getTransactionManager();
-    this.transactionScopeManager = config.getTransactionScopeManager();
+    this.transactionManager = config.createTransactionManager(this);
+    this.transactionScopeManager = config.createTransactionScopeManager(transactionManager);
 
     this.persister = config.createPersister(this);
     this.queryEngine = config.createOrmQueryEngine();
