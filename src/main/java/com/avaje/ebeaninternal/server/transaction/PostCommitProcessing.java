@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.transaction;
 
+import com.avaje.ebean.annotation.IndexEvent;
 import com.avaje.ebeaninternal.api.TransactionEvent;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
 import com.avaje.ebeaninternal.api.TransactionEventTable.TableIUD;
@@ -38,17 +39,17 @@ public final class PostCommitProcessing {
 
   private final DeleteByIdMap deleteByIdMap;
 
-  private final boolean skipIndexUpdates;
+  private final IndexEvent txnIndexMode;
 
   /**
    * Create for a TransactionManager and event.
    */
-  public PostCommitProcessing(ClusterManager clusterManager, TransactionManager manager, TransactionEvent event, boolean skipIndexUpdates) {
+  public PostCommitProcessing(ClusterManager clusterManager, TransactionManager manager, TransactionEvent event, IndexEvent txnIndexMode) {
 
     this.clusterManager = clusterManager;
     this.manager = manager;
     this.serverName = manager.getServerName();
-    this.skipIndexUpdates = skipIndexUpdates;
+    this.txnIndexMode = txnIndexMode;
     this.event = event;
     this.deleteByIdMap = event.getDeleteByIdMap();
     this.persistBeanRequests = event.getPersistRequestBeans();
@@ -85,12 +86,12 @@ public final class PostCommitProcessing {
    */
   protected void processIndexUpdates() {
 
-    if (!skipIndexUpdates) {
+    if (txnIndexMode == null || txnIndexMode != IndexEvent.IGNORE) {
       // collect 'bulk update' and 'queue' events
       IndexUpdates indexUpdates = new IndexUpdates();
       event.addToIndexUpdates(indexUpdates);
       if (deleteByIdMap != null) {
-        deleteByIdMap.addToIndexUpdates(indexUpdates);
+        deleteByIdMap.addToIndexUpdates(indexUpdates, txnIndexMode);
       }
 
       // send to ElasticSearch Bulk API and/or queue

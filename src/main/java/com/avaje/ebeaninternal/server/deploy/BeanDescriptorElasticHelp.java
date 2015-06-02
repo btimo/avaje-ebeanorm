@@ -52,6 +52,16 @@ public class BeanDescriptorElasticHelp<T> {
     return queueId;
   }
 
+  public IndexEvent getIndexEvent(PersistRequest.Type persistType, IndexEvent txnMode) {
+
+    if (txnMode == null) {
+      return getIndexEvent(persistType);
+    } else if (txnMode == IndexEvent.IGNORE) {
+      return IndexEvent.IGNORE;
+    }
+    return (BeanElasticType.INDEX == elasticType) ? txnMode : getIndexEvent(persistType);
+  }
+
   public IndexEvent getIndexEvent(PersistRequest.Type persistType) {
     switch (persistType) {
       case INSERT: return insert;

@@ -390,7 +390,7 @@ public class TransactionManager {
         TXN_LOGGER.debug(transaction.getLogPrefix() + "Commit");
       }
 
-      PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, transaction.getEvent(), isSkipIndexUpdates(transaction));
+      PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, transaction.getEvent(), transaction.getIndexUpdateMode());
 
       postCommit.notifyLocalCacheIndex();
       postCommit.notifyCluster();
@@ -427,7 +427,7 @@ public class TransactionManager {
     TransactionEvent event = new TransactionEvent();
     event.add(tableEvents);
 
-    PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, event, true);
+    PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, event, IndexEvent.IGNORE);
 
     // invalidate parts of local cache and index
     postCommit.notifyLocalCacheIndex();

@@ -142,7 +142,7 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
     this.parentBean = parentBean;
     this.controller = beanDescriptor.getPersistController();
     this.type = type;
-    this.indexEvent = beanDescriptor.getIndexEvent(type);
+    this.indexEvent = getIndexEvent(t, type);
     
     if (saveRecurse) {
       this.persistCascade = t.isPersistCascade();
@@ -159,6 +159,14 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
     }
     this.concurrencyMode = beanDescriptor.getConcurrencyMode(intercept);
     this.dirty = intercept.isDirty();
+  }
+
+  /**
+   * Return the index event mode that should be used for this request.
+   */
+  private IndexEvent getIndexEvent(SpiTransaction txn, Type type) {
+    IndexEvent indexEvent = (txn == null) ? null : txn.getIndexUpdateMode();
+    return beanDescriptor.getIndexEvent(type, indexEvent);
   }
 
   /**

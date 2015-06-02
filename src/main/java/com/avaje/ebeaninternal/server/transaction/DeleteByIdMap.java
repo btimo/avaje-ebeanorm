@@ -79,10 +79,10 @@ public final class DeleteByIdMap {
   /**
    * Add to the ElasticSearch IndexUpdates.
    */
-  public void addToIndexUpdates(IndexUpdates indexUpdates) {
+  public void addToIndexUpdates(IndexUpdates indexUpdates, IndexEvent txnIndexMode) {
     for (BeanPersistIds deleteIds : beanMap.values()) {
       BeanDescriptor<?> desc = deleteIds.getBeanDescriptor();
-      IndexEvent indexEvent = desc.getIndexEvent(PersistRequest.Type.DELETE);
+      IndexEvent indexEvent = desc.getIndexEvent(PersistRequest.Type.DELETE, txnIndexMode);
       if (IndexEvent.IGNORE != indexEvent) {
         // Add to queue or bulk update entries
         boolean queue = (IndexEvent.QUEUE == indexEvent);

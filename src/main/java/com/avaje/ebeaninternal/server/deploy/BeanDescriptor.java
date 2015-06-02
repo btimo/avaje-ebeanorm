@@ -685,10 +685,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   }
 
   /**
-   * Return the type of ElasticSearch indexEvent that should occur for this type of persist request.
+   * Return the type of ElasticSearch indexEvent that should occur for this type of persist request
+   * given the transactions requested mode.
    */
-  public IndexEvent getIndexEvent(PersistRequest.Type persistType) {
-    return elasticHelp.getIndexEvent(persistType);
+  public IndexEvent getIndexEvent(PersistRequest.Type persistType, IndexEvent txnMode) {
+    return elasticHelp.getIndexEvent(persistType, txnMode);
   }
 
   public void elasticInsert(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
