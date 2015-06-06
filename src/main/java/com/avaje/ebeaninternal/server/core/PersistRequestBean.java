@@ -614,6 +614,13 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
   }
 
   /**
+   * Mark all properties as loaded after an insert to support immediate update
+   */
+  private void postInsert() {
+    intercept.postInsert();
+  }
+
+  /**
    * Post processing.
    */
   public void postExecute() throws SQLException {
@@ -622,6 +629,9 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
       controllerPost();
     }
 
+    if (type == Type.INSERT){
+      intercept.postInsert();
+    }
     // if bean persisted again then should result in an update
     intercept.setLoaded();
 
@@ -729,14 +739,6 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
 
   public List<DerivedRelationshipData> getDerivedRelationships() {
     return transaction.getDerivedRelationship(bean);
-  }
-
-  public void postInsert() {
-    // mark all properties as loaded after an insert to support immediate update
-    int len = intercept.getPropertyLength();
-    for (int i = 0; i < len; i++) {
-      intercept.setLoadedProperty(i);
-    }
   }
 
   public boolean isReference() {

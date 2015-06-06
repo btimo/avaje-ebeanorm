@@ -138,6 +138,8 @@ public class JdbcTransaction implements SpiTransaction {
    */
   protected IndexEvent indexUpdateMode;
 
+  protected int indexBulkBatchSize;
+
   /**
    * Create a new JdbcTransaction.
    */
@@ -237,6 +239,16 @@ public class JdbcTransaction implements SpiTransaction {
         }
       }
     }
+  }
+
+  @Override
+  public int getIndexBulkBatchSize() {
+    return indexBulkBatchSize;
+  }
+
+  @Override
+  public void setIndexBulkBatchSize(int indexBulkBatchSize) {
+    this.indexBulkBatchSize = indexBulkBatchSize;
   }
 
   public IndexEvent getIndexUpdateMode() {

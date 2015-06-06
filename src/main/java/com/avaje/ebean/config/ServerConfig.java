@@ -1759,6 +1759,11 @@ public class ServerConfig {
     }
     loadDataSourceSettings(p);
 
+    if (elasticConfig == null) {
+      elasticConfig = new ElasticConfig();
+    }
+    elasticConfig.loadSettings(p);
+
     autoCommitMode = p.getBoolean("autoCommitMode", autoCommitMode);
     useJtaTransactionManager = p.getBoolean("useJtaTransactionManager", useJtaTransactionManager);
 

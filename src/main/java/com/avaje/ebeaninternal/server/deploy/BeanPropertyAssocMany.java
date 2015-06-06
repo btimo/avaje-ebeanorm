@@ -868,7 +868,7 @@ public class BeanPropertyAssocMany<T> extends BeanPropertyAssoc<T> {
 
     Object value = getValueIntercept(bean);
     if (value != null) {
-      ctx.pushParentBeanMany(bean);
+      ctx.pushParentBeanMany(name, bean);
       if (help != null) {
         help.jsonWrite(ctx, name, value, include != null);
       } else {

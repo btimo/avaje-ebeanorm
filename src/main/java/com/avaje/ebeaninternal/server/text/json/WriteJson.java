@@ -38,12 +38,14 @@ public class WriteJson {
     return !parentBeans.isEmpty() && parentBeans.contains(bean);
   }
 
-  public void pushParentBeanMany(Object parentBean) {
+  public void pushParentBeanMany(String key, Object parentBean) {
     parentBeans.push(parentBean);
+    pathStack.pushPathKey(key);
   }
 
   public void popParentBeanMany() {
     parentBeans.pop();
+    pathStack.pop();
   }
 
   public void beginAssocOne(String key, Object bean) {

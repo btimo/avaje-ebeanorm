@@ -109,6 +109,12 @@ public interface SpiTransaction extends Transaction {
    */
   IndexEvent getIndexUpdateMode();
 
+  /**
+   * Return the batch size to us for ElasticSearch Bulk API calls
+   * as a result of this transaction.
+   */
+  int getIndexBulkBatchSize();
+
     /**
      * Return the batchSize specifically set for this transaction or 0.
      * <p>

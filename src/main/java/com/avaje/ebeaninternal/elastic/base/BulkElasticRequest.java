@@ -6,7 +6,7 @@ import com.avaje.ebeaninternal.elastic.IndexUpdates;
 import java.io.IOException;
 
 /**
- * Created by rob on 1/06/15.
+ * A request that can be sent to the ElasticSearch Bulk API.
  */
 public interface BulkElasticRequest {
 

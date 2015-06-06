@@ -14,12 +14,14 @@ import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import com.avaje.ebean.annotation.ElasticIndex;
 import com.avaje.ebean.annotation.EnumValue;
 import com.avaje.ebean.annotation.Where;
 
 /**
  * Customer entity bean.
  */
+@ElasticIndex
 @Entity
 @Table(name = "o_customer")
 public class Customer extends BasicDomain {

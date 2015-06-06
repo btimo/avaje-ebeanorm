@@ -32,5 +32,12 @@ public enum IndexEvent {
    *   IGNORE on a particular transaction and instead manually queueIndex a bulk index updateAdd.
    * </p>
    */
-  IGNORE
+  IGNORE,
+
+  /**
+   * The actual mode of INDEX, UPDATE or IGNORE is set from the default configuration
+   * in ElasticConfig.
+   */
+  DEFAULT
+
 }

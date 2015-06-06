@@ -93,6 +93,18 @@ public interface Transaction extends Closeable {
   void setIndexUpdateMode(IndexEvent indexUpdateMode);
 
   /**
+   * Set the batch size to use for sending messages to the ElasticSearch Bulk API.
+   * <p>
+   *   You might set this if you know the changes in this transaction result in especially large or
+   *   especially small payloads and want to adjust the batch size to match.
+   * </p>
+   * <p>
+   *   Setting this overrides the default of {@link com.avaje.ebean.config.ElasticConfig#getBulkBatchSize()}
+   * </p>
+   */
+  void setIndexBulkBatchSize(int batchSize);
+
+  /**
    * Explicitly turn off or on the cascading nature of save() and delete(). This
    * gives the developer exact control over what beans are saved and deleted
    * rather than Ebean cascading detecting 'dirty/modified' beans etc.
@@ -289,7 +301,7 @@ public interface Transaction extends Closeable {
    * <li>Transaction commit occurs</li>
    * </ul>
    */
-  void flushBatch() throws PersistenceException, OptimisticLockException;
+  void flushBatch() throws PersistenceException;
 
   /**
    * Return the underlying Connection object.

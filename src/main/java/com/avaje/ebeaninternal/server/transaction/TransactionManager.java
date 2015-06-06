@@ -2,6 +2,7 @@ package com.avaje.ebeaninternal.server.transaction;
 
 import com.avaje.ebean.BackgroundExecutor;
 import com.avaje.ebean.annotation.IndexEvent;
+import com.avaje.ebean.config.ElasticConfig;
 import com.avaje.ebean.config.PersistBatch;
 import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.config.dbplatform.DatabasePlatform.OnQueryOnly;
@@ -11,9 +12,11 @@ import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEvent;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
 import com.avaje.ebeaninternal.api.TransactionEventTable.TableIUD;
+import com.avaje.ebeaninternal.elastic.BulkMessageSender;
 import com.avaje.ebeaninternal.elastic.IndexQueue;
 import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.elastic.IndexUpdates;
+import com.avaje.ebeaninternal.elastic.base.BaseHttpMessageSender;
 import com.avaje.ebeaninternal.elastic.base.BaseIndexQueue;
 import com.avaje.ebeaninternal.elastic.base.BaseIndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.cluster.ClusterManager;
@@ -74,6 +77,9 @@ public class TransactionManager {
 
   protected final String serverName;
 
+  /**
+   * The elastic search index update processor.
+   */
   protected final IndexUpdateProcessor indexUpdateProcessor;
 
   protected final PersistBatch persistBatch;
@@ -103,7 +109,7 @@ public class TransactionManager {
     this.serverName = config.getName();
     this.backgroundExecutor = backgroundExecutor;
     this.dataSource = config.getDataSource();
-    this.indexUpdateProcessor = createIndexUpdateProcessor(server);
+    this.indexUpdateProcessor = createIndexUpdateProcessor(server, config);
     this.bulkEventListenerMap = new BulkEventListenerMap(config.getBulkTableEventListeners());
 
     List<TransactionEventListener> transactionEventListeners = bootupClasses.getTransactionEventListeners();
@@ -117,12 +123,14 @@ public class TransactionManager {
     initialiseHeartbeat();
   }
 
-  private IndexUpdateProcessor createIndexUpdateProcessor(SpiEbeanServer server) {
+  private IndexUpdateProcessor createIndexUpdateProcessor(SpiEbeanServer server, ServerConfig config) {
 
     //TODO: Move this out ...
+    ElasticConfig elasticConfig = config.getElasticConfig();
     JsonFactory jsonFactory = new JsonFactory();
     IndexQueue indexQueue = new BaseIndexQueue(server, "eb_elastic_queue");
-    return new BaseIndexUpdateProcessor(indexQueue, jsonFactory);
+    BulkMessageSender messageSender = new BaseHttpMessageSender(elasticConfig.getUrl());
+    return new BaseIndexUpdateProcessor(indexQueue, jsonFactory, messageSender, elasticConfig.getBulkBatchSize());
   }
 
   private void initialiseHeartbeat() {
@@ -390,7 +398,7 @@ public class TransactionManager {
         TXN_LOGGER.debug(transaction.getLogPrefix() + "Commit");
       }
 
-      PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, transaction.getEvent(), transaction.getIndexUpdateMode());
+      PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, transaction);
 
       postCommit.notifyLocalCacheIndex();
       postCommit.notifyCluster();
@@ -427,7 +435,7 @@ public class TransactionManager {
     TransactionEvent event = new TransactionEvent();
     event.add(tableEvents);
 
-    PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, event, IndexEvent.IGNORE);
+    PostCommitProcessing postCommit = new PostCommitProcessing(clusterManager, this, event);
 
     // invalidate parts of local cache and index
     postCommit.notifyLocalCacheIndex();
@@ -464,8 +472,8 @@ public class TransactionManager {
   /**
    * Process the ElasticSearch index updates.
    */
-  public void processIndexUpdates(IndexUpdates indexUpdates) {
+  public void processIndexUpdates(IndexUpdates indexUpdates, int bulkBatchSize) {
 
-    indexUpdateProcessor.process(indexUpdates);
+    indexUpdateProcessor.process(indexUpdates, bulkBatchSize);
   }
 }

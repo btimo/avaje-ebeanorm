@@ -1,6 +1,7 @@
 package com.avaje.ebeaninternal.server.deploy;
 
 import com.avaje.ebean.annotation.IndexEvent;
+import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.elastic.BulkElasticUpdate;
 import com.avaje.ebeaninternal.server.core.PersistRequest;
@@ -20,7 +21,9 @@ public class BeanDescriptorElasticHelp<T> {
 
   final BeanElasticType elasticType;
 
-  String queueId;
+  final PathProperties pathProperties;
+
+  final String queueId;
 
   final String indexType;
 
@@ -35,6 +38,7 @@ public class BeanDescriptorElasticHelp<T> {
   BeanDescriptorElasticHelp(BeanDescriptor<T> desc, DeployBeanDescriptor<T> deploy) {
 
     this.desc = desc;
+    this.pathProperties = derivePathProperties(deploy.getElasticPathProperties());
     this.server = desc.getEbeanServer();
     this.elasticType = deploy.getElasticType();
     this.queueId = derive(desc, deploy.getElasticQueueId());
@@ -46,6 +50,28 @@ public class BeanDescriptorElasticHelp<T> {
     this.delete = deploy.getElasticDeleteEvent();
 
     this.versionProperty = desc.getVersionProperty();
+  }
+
+  /**
+   * Return the pathProperties which defines the JSON document to index.
+   * This can add derived/embedded/nested parts to the document.
+   */
+  private PathProperties derivePathProperties(PathProperties deployPathProperties) {
+
+    if (deployPathProperties != null) return deployPathProperties;
+
+    // determine from annotations on the properties
+    PathProperties prop = new PathProperties();
+
+    BeanProperty[] properties = desc.propertiesNonTransient();
+
+    for (int i = 0; i < properties.length ; i++) {
+      if (!(properties[i] instanceof BeanPropertyAssocMany)) {
+        prop.addToPath(null, properties[i].getName());
+      }
+    }
+
+    return prop;
   }
 
   public String getQueueId() {
@@ -71,12 +97,18 @@ public class BeanDescriptorElasticHelp<T> {
     }
   }
 
+  /**
+   * Return the supplied value or default to the bean name lower case.
+   */
   private String derive(BeanDescriptor<T> desc, String suppliedValue) {
-    return suppliedValue != null ? suppliedValue : desc.getName().toLowerCase();
+    return (suppliedValue != null && suppliedValue.length() > 0) ? suppliedValue : desc.getName().toLowerCase();
   }
 
-  private WriteJson createWriteJson(JsonGenerator gen) {
-    return new WriteJson(server, gen, null);
+  /**
+   * Create a WriteJson given the generator and path properties.s
+   */
+  private WriteJson createWriteJson(JsonGenerator gen, PathProperties pathProperties) {
+    return new WriteJson(server, gen, pathProperties);
   }
 
   public void deleteById(Object idValue, BulkElasticUpdate txn) throws IOException {
@@ -94,7 +126,8 @@ public class BeanDescriptorElasticHelp<T> {
     JsonGenerator gen = txn.gen();
     writeBulkHeader(gen, idValue, "index", persistRequest);
 
-    WriteJson writeJson = createWriteJson(gen);
+    // use the pathProperties for 'index' requests
+    WriteJson writeJson = createWriteJson(gen, pathProperties);
     desc.jsonWrite(writeJson, persistRequest.getEntityBean());
     gen.writeRaw("\n");
   }
@@ -105,7 +138,8 @@ public class BeanDescriptorElasticHelp<T> {
     JsonGenerator gen = txn.gen();
     writeBulkHeader(gen, idValue, "update", persistRequest);
 
-    WriteJson writeJson = createWriteJson(gen);
+    // only the 'dirty' properties included in 'update' request
+    WriteJson writeJson = createWriteJson(gen, null);
     gen.writeStartObject();
     gen.writeFieldName("doc");
     desc.jsonWriteDirty(writeJson, persistRequest.getEntityBean(), persistRequest.getDirtyProperties());

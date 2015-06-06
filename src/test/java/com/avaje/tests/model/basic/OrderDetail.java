@@ -1,5 +1,7 @@
 package com.avaje.tests.model.basic;
 
+import com.avaje.ebean.annotation.ElasticEmbedded;
+
 import java.io.Serializable;
 import java.sql.Timestamp;
 
@@ -31,6 +33,7 @@ public class OrderDetail implements Serializable {
     Double unitPrice;
 
     @ManyToOne
+    @ElasticEmbedded(properties = "id,name,sku")
     Product product;
 
     Timestamp cretime;

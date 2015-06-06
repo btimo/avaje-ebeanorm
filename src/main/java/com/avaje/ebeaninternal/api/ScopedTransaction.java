@@ -69,6 +69,16 @@ public class ScopedTransaction implements SpiTransaction {
   }
 
   @Override
+  public int getIndexBulkBatchSize() {
+    return transaction.getIndexBulkBatchSize();
+  }
+
+  @Override
+  public void setIndexBulkBatchSize(int batchSize) {
+    transaction.setIndexBulkBatchSize(batchSize);
+  }
+
+  @Override
   public void endQueryOnly() {
     transaction.endQueryOnly();
   }

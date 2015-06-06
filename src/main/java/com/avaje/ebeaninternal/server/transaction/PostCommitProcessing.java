@@ -1,6 +1,7 @@
 package com.avaje.ebeaninternal.server.transaction;
 
 import com.avaje.ebean.annotation.IndexEvent;
+import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEvent;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
 import com.avaje.ebeaninternal.api.TransactionEventTable.TableIUD;
@@ -41,16 +42,36 @@ public final class PostCommitProcessing {
 
   private final IndexEvent txnIndexMode;
 
+  private final int txnIndexBulkBatchSize;
+
   /**
-   * Create for a TransactionManager and event.
+   * Create for an external modification.
    */
-  public PostCommitProcessing(ClusterManager clusterManager, TransactionManager manager, TransactionEvent event, IndexEvent txnIndexMode) {
+  public PostCommitProcessing(ClusterManager clusterManager, TransactionManager manager, TransactionEvent event) {
 
     this.clusterManager = clusterManager;
     this.manager = manager;
     this.serverName = manager.getServerName();
-    this.txnIndexMode = txnIndexMode;
+    this.txnIndexMode = IndexEvent.IGNORE;
+    this.txnIndexBulkBatchSize = 0;
     this.event = event;
+    this.deleteByIdMap = event.getDeleteByIdMap();
+    this.persistBeanRequests = event.getPersistRequestBeans();
+    this.beanPersistIdMap = createBeanPersistIdMap();
+    this.remoteTransactionEvent = createRemoteTransactionEvent();
+  }
+
+  /**
+   * Create for a transaction.
+   */
+  public PostCommitProcessing(ClusterManager clusterManager, TransactionManager manager, SpiTransaction transaction) {
+
+    this.clusterManager = clusterManager;
+    this.manager = manager;
+    this.serverName = manager.getServerName();
+    this.txnIndexMode = transaction.getIndexUpdateMode();
+    this.txnIndexBulkBatchSize = transaction.getIndexBulkBatchSize();
+    this.event = transaction.getEvent();
     this.deleteByIdMap = event.getDeleteByIdMap();
     this.persistBeanRequests = event.getPersistRequestBeans();
     this.beanPersistIdMap = createBeanPersistIdMap();
@@ -94,8 +115,10 @@ public final class PostCommitProcessing {
         deleteByIdMap.addToIndexUpdates(indexUpdates, txnIndexMode);
       }
 
-      // send to ElasticSearch Bulk API and/or queue
-      manager.processIndexUpdates(indexUpdates);
+      if (!indexUpdates.isEmpty()) {
+        // send to ElasticSearch Bulk API and/or queue
+        manager.processIndexUpdates(indexUpdates, txnIndexBulkBatchSize);
+      }
     }
   }
 

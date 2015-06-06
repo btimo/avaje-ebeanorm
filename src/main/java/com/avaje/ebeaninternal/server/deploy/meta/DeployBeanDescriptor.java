@@ -11,6 +11,7 @@ import com.avaje.ebean.event.BeanFinder;
 import com.avaje.ebean.event.BeanPersistController;
 import com.avaje.ebean.event.BeanPersistListener;
 import com.avaje.ebean.event.BeanQueryAdapter;
+import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.server.core.CacheOptions;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
 import com.avaje.ebeaninternal.server.deploy.*;
@@ -134,6 +135,8 @@ public class DeployBeanDescriptor<T> {
    */
   private BeanElasticType elasticType = BeanElasticType.NONE;
 
+  private PathProperties elasticPathProperties;
+
   private String elasticQueueId;
 
   private String elasticIndexName;
@@ -170,6 +173,10 @@ public class DeployBeanDescriptor<T> {
     elasticInsert = elasticIndex.insert();
     elasticUpdate = elasticIndex.update();
     elasticDelete = elasticIndex.delete();
+    String doc = elasticIndex.doc();
+    if (doc != null && doc.length() > 0) {
+      elasticPathProperties = PathProperties.parse(doc);
+    }
   }
 
   public boolean isScalaObject() {
@@ -795,6 +802,10 @@ public class DeployBeanDescriptor<T> {
     }
   }
 
+  public PathProperties getElasticPathProperties() {
+    return elasticPathProperties;
+  }
+
   public BeanElasticType getElasticType() {
     return elasticType;
   }
@@ -836,8 +847,8 @@ public class DeployBeanDescriptor<T> {
     if (elasticType == BeanElasticType.NONE) {
       return IndexEvent.IGNORE;
     }
-    if (mostSpecific != null) return mostSpecific;
-    if (elasticPersist != null) return elasticPersist;
+    if (mostSpecific != IndexEvent.DEFAULT) return mostSpecific;
+    if (elasticPersist != IndexEvent.DEFAULT) return elasticPersist;
     return serverConfig.getElasticConfig().getPersist();
   }
 }

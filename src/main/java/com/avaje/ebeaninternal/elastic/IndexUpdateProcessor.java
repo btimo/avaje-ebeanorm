@@ -15,6 +15,11 @@ public interface IndexUpdateProcessor {
    *   Typically this makes calls to the ElasticSearch Bulk API or simply adds IndexQueryEntry's
    *   to a queue for future processing.
    * </p>
+   *
+   * @param indexUpdates The 'Bulk' and 'Queue' updates to the indexes for the transaction.
+   *
+   * @param bulkBatchSize The batch size to use for Bulk API calls specified on the transaction.
+   *                      If this is 0 then the default batch size is used.
    */
-  void process(IndexUpdates indexUpdates);
+  void process(IndexUpdates indexUpdates, int bulkBatchSize);
 }

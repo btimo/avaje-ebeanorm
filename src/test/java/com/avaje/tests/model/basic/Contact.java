@@ -11,7 +11,9 @@ import javax.persistence.Version;
 
 import com.avaje.ebean.annotation.CacheStrategy;
 import com.avaje.ebean.annotation.CreatedTimestamp;
+import com.avaje.ebean.annotation.ElasticIndex;
 
+@ElasticIndex
 @Entity
 @CacheStrategy(naturalKey="email")
 public class Contact {

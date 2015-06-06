@@ -276,7 +276,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   private final boolean cacheSharableBeans;
 
   private final String elasticQueueId;
-  
+
   private final BeanDescriptorCacheHelp<T> cacheHelp;
   private final BeanDescriptorJsonHelp<T> jsonHelp;
   private final BeanDescriptorElasticHelp<T> elasticHelp;
@@ -399,7 +399,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
       this.unloadProperties = derivePropertiesToUnload(prototypeEntityBean);
     }
   }
-  
+
   /**
    * Derive an array of property positions for properties that are initialised in the constructor.
    * These properties need to be unloaded when populating beans for queries.
