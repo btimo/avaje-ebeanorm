@@ -15,6 +15,7 @@ import com.avaje.ebean.text.json.JsonContext;
 import com.avaje.ebeaninternal.api.*;
 import com.avaje.ebeaninternal.api.SpiQuery.Mode;
 import com.avaje.ebeaninternal.api.SpiQuery.Type;
+import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.autofetch.AutoFetchManager;
 import com.avaje.ebeaninternal.server.ddl.DdlGenerator;
 import com.avaje.ebeaninternal.server.deploy.*;
@@ -92,6 +93,8 @@ public final class DefaultServer implements SpiEbeanServer {
   private final AutoFetchManager autoFetchManager;
 
   private final CQueryEngine cqueryEngine;
+
+  private final IndexUpdateProcessor indexUpdateProcessor;
 
   private DdlGenerator ddlGenerator;
 
@@ -185,7 +188,8 @@ public final class DefaultServer implements SpiEbeanServer {
     this.maxCallStack = serverConfig.getMaxCallStack();
 
     this.rollbackOnChecked = serverConfig.isTransactionRollbackOnChecked();
-    this.transactionManager = config.createTransactionManager(this);
+    this.indexUpdateProcessor = config.createIndexUpdateProcessor(this);
+    this.transactionManager = config.createTransactionManager(this, indexUpdateProcessor);
     this.transactionScopeManager = config.createTransactionScopeManager(transactionManager);
 
     this.persister = config.createPersister(this);
@@ -266,6 +270,10 @@ public final class DefaultServer implements SpiEbeanServer {
 
   public BackgroundExecutor getBackgroundExecutor() {
     return backgroundExecutor;
+  }
+
+  public IndexUpdateProcessor getIndexUpdateProcessor() {
+    return indexUpdateProcessor;
   }
 
   public ExpressionFactory getExpressionFactory() {
@@ -1445,6 +1453,32 @@ public final class DefaultServer implements SpiEbeanServer {
     } finally {
       request.endTransIfRequired();
     }
+  }
+
+  public <T> void indexByQuery(Query<T> query) {
+    indexByQuery(query, 0);
+  }
+
+  public <T> void indexByQuery(Query<T> query, int bulkBatchSize) {
+
+    SpiQuery<T> spiQuery = (SpiQuery<T>)query;
+    Class<T> beanType = spiQuery.getBeanType();
+
+    BeanDescriptor<T> beanDescriptor = getBeanDescriptor(beanType);
+    if (beanDescriptor == null) {
+      throw new IllegalArgumentException("Type ["+beanType+"] does not appear to be an entity bean type?");
+    }
+    beanDescriptor.indexByQuery(query, bulkBatchSize);
+  }
+
+  @Override
+  public <T> T indexGet(Class<T> beanType, Object id) {
+
+    BeanDescriptor<T> beanDescriptor = getBeanDescriptor(beanType);
+    if (beanDescriptor == null) {
+      throw new IllegalArgumentException("Type ["+beanType+"] does not appear to be an entity bean type?");
+    }
+    return beanDescriptor.indexGet(id);
   }
 
   /**

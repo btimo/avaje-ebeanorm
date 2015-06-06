@@ -8,7 +8,6 @@ import com.avaje.tests.model.basic.Contact;
 import com.fasterxml.jackson.core.JsonFactory;
 import org.junit.Test;
 
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +18,7 @@ public class BaseIndexUpdateProcessorTest {
 
   SpiEbeanServer server = (SpiEbeanServer)Ebean.getServer(null);
 
-  TDIndexQueue indexQueue = new TDIndexQueue();
+  TDIndexQueueWriter indexQueue = new TDIndexQueueWriter();
 
   JsonFactory jsonFactory = new JsonFactory();
 
@@ -29,7 +28,7 @@ public class BaseIndexUpdateProcessorTest {
 
   private BaseIndexUpdateProcessor create() {
 
-    BulkMessageSender messageSender = new BaseHttpMessageSender("http://localhost:9200/_bulk");
+    IndexMessageSender messageSender = new BaseHttpMessageSender("http://localhost:9200/_bulk");
 
     return new BaseIndexUpdateProcessor(indexQueue, jsonFactory, messageSender, 1000);
   }
@@ -56,7 +55,7 @@ public class BaseIndexUpdateProcessorTest {
   @Test
   public void testCreateBulkElasticUpdate() throws Exception {
 
-    assertNotNull(processor.createBulkElasticUpdate(new StringWriter()));
+    assertNotNull(processor.createBulkElasticUpdate());
   }
 
   @Test
@@ -127,7 +126,7 @@ public class BaseIndexUpdateProcessorTest {
     return new IndexDeleteByIdRequest(contactBeanDescriptor, id);
   }
 
-  class TDIndexQueue implements IndexQueue {
+  class TDIndexQueueWriter implements IndexQueueWriter {
 
     List<IndexQueueEntry> theQueue = new ArrayList<IndexQueueEntry>();
 

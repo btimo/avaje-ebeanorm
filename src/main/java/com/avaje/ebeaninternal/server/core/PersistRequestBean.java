@@ -22,7 +22,7 @@ import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEvent;
 import com.avaje.ebeaninternal.elastic.BulkElasticUpdate;
-import com.avaje.ebeaninternal.elastic.base.BulkElasticRequest;
+import com.avaje.ebeaninternal.elastic.BulkElasticRequest;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.BeanManager;
 import com.avaje.ebeaninternal.server.deploy.BeanProperty;

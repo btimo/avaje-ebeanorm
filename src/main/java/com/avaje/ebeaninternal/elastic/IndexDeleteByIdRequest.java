@@ -1,6 +1,5 @@
 package com.avaje.ebeaninternal.elastic;
 
-import com.avaje.ebeaninternal.elastic.base.BulkElasticRequest;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package com.avaje.ebeaninternal.elastic.base;
+package com.avaje.ebeaninternal.elastic;
 
 import com.avaje.ebeaninternal.elastic.BulkElasticUpdate;
 import com.avaje.ebeaninternal.elastic.IndexUpdates;

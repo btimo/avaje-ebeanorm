@@ -13,20 +13,20 @@ public class IndexQueueEntry {
     /**
      * Action is to update the index entry.
      */
-    INDEX("I"),
+    INDEX(1),
 
     /**
      * Action is to update the index entry.
      */
-    DELETE("D");
+    DELETE(2);
 
-    String dbValue;
+    int dbValue;
 
-    Action(String dbValue) {
+    Action(int dbValue) {
       this.dbValue = dbValue;
     }
 
-    public String getDbValue() {
+    public int getDbValue() {
       return dbValue;
     }
   }

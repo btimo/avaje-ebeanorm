@@ -11,6 +11,7 @@ import com.avaje.ebean.config.dbplatform.DatabasePlatform;
 import com.avaje.ebean.meta.MetaInfoManager;
 import com.avaje.ebean.text.csv.CsvReader;
 import com.avaje.ebean.text.json.JsonContext;
+import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.autofetch.AutoFetchManager;
 import com.avaje.ebeaninternal.server.core.PstmtBatch;
 import com.avaje.ebeaninternal.server.core.SpiOrmQueryRequest;
@@ -560,6 +561,27 @@ public class TDSpiEbeanServer implements SpiEbeanServer {
 
   @Override
   public <T> T find(Class<T> beanType, Object uid, Transaction transaction) {
+    return null;
+  }
+
+  @Override
+  public IndexUpdateProcessor getIndexUpdateProcessor() {
+    return null;
+  }
+
+  @Override
+  public <T> void indexByQuery(Query<T> query) {
+
+  }
+
+  @Override
+  public <T> void indexByQuery(Query<T> query, int bulkBatchSize) {
+
+  }
+
+  @Override
+  public <T> T indexGet(Class<T> cls, Object id) {
+
     return null;
   }
 

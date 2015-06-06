@@ -1,7 +1,6 @@
 package com.avaje.ebeaninternal.elastic;
 
 import com.avaje.ebeaninternal.elastic.IndexQueueEntry.Action;
-import com.avaje.ebeaninternal.elastic.base.BulkElasticRequest;
 
 import java.util.ArrayList;
 import java.util.List;

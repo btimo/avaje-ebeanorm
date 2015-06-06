@@ -4,12 +4,11 @@ import com.avaje.ebean.text.json.EJson;
 import com.avaje.ebeaninternal.elastic.*;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,17 +24,29 @@ public class BaseIndexUpdateProcessor implements IndexUpdateProcessor {
 
   protected final JsonFactory jsonFactory;
 
-  protected final IndexQueue queue;
+  protected final IndexQueueWriter queueWriter;
 
-  protected final BulkMessageSender messageSender;
+  protected final IndexMessageSender messageSender;
 
   protected final int bulkBatchSize;
 
-  public BaseIndexUpdateProcessor(IndexQueue queue, JsonFactory jsonFactory, BulkMessageSender messageSender, int bulkBatchSize) {
-    this.queue = queue;
+  public BaseIndexUpdateProcessor(IndexQueueWriter queueWriter, JsonFactory jsonFactory, IndexMessageSender messageSender, int bulkBatchSize) {
+    this.queueWriter = queueWriter;
     this.jsonFactory = jsonFactory;
     this.messageSender = messageSender;
     this.bulkBatchSize = bulkBatchSize;
+  }
+
+  @Override
+  public JsonParser getDocSource(String indexType, String indexName, Object docId) throws IOException {
+
+    IndexMessageSenderResponse response = messageSender.getDocSource(indexType, indexName, docId.toString());
+
+    if (response.getCode() == 200) {
+      return jsonFactory.createParser(response.getBody());
+    }
+
+    throw new IOException("Response code:"+response.getCode()+" body:"+response.getBody());
   }
 
   @Override
@@ -51,9 +62,44 @@ public class BaseIndexUpdateProcessor implements IndexUpdateProcessor {
    */
   protected void sendQueueEvents(IndexUpdates indexUpdates) {
 
-    queue.queue(indexUpdates.getQueueEntries());
+    queueWriter.queue(indexUpdates.getQueueEntries());
   }
 
+  public Map<String, Object> sendPayload(BulkElasticUpdate bulk, int size) throws IOException {
+
+    bulk.flush();
+
+    String payload = bulk.getBuffer();
+    if (elaLogger.isTraceEnabled()) {
+      elaLogger.trace("ElasticBulkMessage Request:\n" + payload + "\n");
+    }
+
+    // send to Bulk API
+    String response = messageSender.postBulk(payload);
+    elaLogger.debug("request entries:{} payloadSize:{} responseSize:{}", size, payload.length(), response.length());
+
+    if (elaLogger.isTraceEnabled()) {
+      elaLogger.trace("ElasticBulkMessage Response:\n" + response);
+    }
+
+    // parse the response
+    return parseBulkResponse(response);
+  }
+
+  @Override
+  public CallbackBulkElasticUpdate createCallbackBulkElasticUpdate(int batchSize) throws IOException {
+
+    int batch = (batchSize > 0) ? batchSize : bulkBatchSize;
+
+    return new BaseCallbackBulkElasticUpdate(this, batch);
+  }
+
+  @Override
+  public Map<String, Object> sendBulk(BulkElasticUpdate bulk) throws IOException {
+
+
+    return sendPayload(bulk, bulk.size());
+  }
 
   /**
    * Send the 'bulk entries' to the ElasticSearch Bulk API.
@@ -92,10 +138,10 @@ public class BaseIndexUpdateProcessor implements IndexUpdateProcessor {
    * @param addToQueueOnFailure if true then failures are added tho the queue
    */
   protected void sendBulkUpdateBatch(IndexUpdates indexUpdates, List<BulkElasticRequest> bulkEntries, boolean addToQueueOnFailure) {
+
     try {
 
-      StringWriter writer = new StringWriter();
-      BulkElasticUpdate bulk = createBulkElasticUpdate(writer);
+      BulkElasticUpdate bulk = createBulkElasticUpdate();
 
       for (BulkElasticRequest bulkEntry : bulkEntries) {
         bulkEntry.elasticBulkUpdate(bulk);
@@ -103,23 +149,9 @@ public class BaseIndexUpdateProcessor implements IndexUpdateProcessor {
 
       bulk.flush();
 
-      String payload = writer.toString();
-      if (elaLogger.isTraceEnabled()) {
-        elaLogger.trace("ElasticBulkMessage Request:\n" + payload + "\n");
-      }
+      Map<String, Object> responseMap = sendPayload(bulk,bulkEntries.size());
 
-      // send to Bulk API
-      String response = messageSender.post(payload);
-
-      // parse the response
-      Map<String, Object> responseMap = parseBulkResponse(response);
       Boolean errors = (Boolean) responseMap.get("errors");
-
-      elaLogger.debug("request entries:{} errors:{} payloadSize:{} responseSize:{}", bulkEntries.size(), errors, payload.length(), response.length());
-
-      if (elaLogger.isTraceEnabled()) {
-        elaLogger.trace("ElasticBulkMessage Response:\n" + response);
-      }
 
       if (addToQueueOnFailure && errors) {
         // for any errors add the matching bulk request to the queue
@@ -127,7 +159,7 @@ public class BaseIndexUpdateProcessor implements IndexUpdateProcessor {
         List<Map<String, Object>> responseItems = (List<Map<String, Object>>) responseMap.get("responseItems");
         for (int i = 0; i < responseItems.size(); i++) {
           if (addToQueueForStatus(responseItems.get(i))) {
-            logger.debug("... responseEntry:{} adding to queue", i);
+            logger.debug("... responseEntry:{} adding to queueWriter", i);
             bulkEntries.get(i).addToQueue(indexUpdates);
           }
         }
@@ -179,9 +211,11 @@ public class BaseIndexUpdateProcessor implements IndexUpdateProcessor {
   /**
    * Create a BulkElasticUpdate.
    */
-  protected BulkElasticUpdate createBulkElasticUpdate(Writer writer) throws IOException {
+  @Override
+  public BulkElasticUpdate createBulkElasticUpdate() throws IOException {
 
+    StringBuilderWriter writer = new StringBuilderWriter();
     JsonGenerator gen = jsonFactory.createGenerator(writer);
-    return new BulkElasticUpdate(gen);
+    return new BulkElasticUpdate(gen, writer);
   }
 }

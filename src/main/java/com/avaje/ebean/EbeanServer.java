@@ -1188,38 +1188,66 @@ public interface EbeanServer {
   SqlRow findUnique(SqlQuery query, Transaction transaction);
 
   /**
-   * Either Insert or Update the bean depending on its state.
+   * Update the associated ElasticSearch index using the result of the query.
    * <p>
-   * If there is no current transaction one will be created and committed for
-   * you automatically.
+   * Note that the select and fetch paths of the query is set for you to match the
+   * document structure needed for the index so what this query requires is the
+   * predicates only.
    * </p>
    * <p>
-   * Save can cascade along relationships. For this to happen you need to
-   * specify a cascade of CascadeType.ALL or CascadeType.PERSIST on the
-   * OneToMany, OneToOne or ManyToMany annotation.
-   * </p>
-   * <p>
-   * In this example below the details property has a CascadeType.ALL set so
-   * saving an order will also save all its details.
+   *   This query will be executed using findEach so it is safe to use a query
+   *   that will fetch a lot of beans. For sending the JSON content the default bulkBatchSize
+   *   is used.
    * </p>
    *
-   * <pre>{@code
-   *   public class Order { ...
-   *
-   * 	   @OneToMany(cascade=CascadeType.ALL, mappedBy="order")
-   * 	   @JoinColumn(name="order_id")
-   * 	   List<OrderDetail> details;
-   * 	   ...
-   *   }
-   * }</pre>
-   *
-   * <p>
-   * When a save cascades via a OneToMany or ManyToMany Ebean will automatically
-   * set the 'parent' object to the 'detail' object. In the example below in
-   * saving the order and cascade saving the order details the 'parent' order
-   * will be set against each order detail when it is saved.
-   * </p>
+   * @param query The query used to update the associated ElasticSearch index.
    */
+  <T> void indexByQuery(Query<T> query);
+
+  /**
+   * Update the associated ElasticSearch index using the result of the query additionally specifying a
+   * bulkBatchSize to use for sending the messages to ElasticSearch.
+   */
+  <T> void indexByQuery(Query<T> query, int bulkBatchSize);
+
+  /**
+   * Return the bean by fetching it's content from the ElasticSearch index.
+   */
+  <T> T indexGet(Class<T> beanType, Object id);
+
+    /**
+     * Either Insert or Update the bean depending on its state.
+     * <p>
+     * If there is no current transaction one will be created and committed for
+     * you automatically.
+     * </p>
+     * <p>
+     * Save can cascade along relationships. For this to happen you need to
+     * specify a cascade of CascadeType.ALL or CascadeType.PERSIST on the
+     * OneToMany, OneToOne or ManyToMany annotation.
+     * </p>
+     * <p>
+     * In this example below the details property has a CascadeType.ALL set so
+     * saving an order will also save all its details.
+     * </p>
+     *
+     * <pre>{@code
+     *   public class Order { ...
+     *
+     * 	   @OneToMany(cascade=CascadeType.ALL, mappedBy="order")
+     * 	   @JoinColumn(name="order_id")
+     * 	   List<OrderDetail> details;
+     * 	   ...
+     *   }
+     * }</pre>
+     *
+     * <p>
+     * When a save cascades via a OneToMany or ManyToMany Ebean will automatically
+     * set the 'parent' object to the 'detail' object. In the example below in
+     * saving the order and cascade saving the order details the 'parent' order
+     * will be set against each order detail when it is saved.
+     * </p>
+     */
   void save(Object bean) throws OptimisticLockException;
 
   /**

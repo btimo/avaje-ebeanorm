@@ -9,6 +9,7 @@ import com.avaje.ebean.bean.CallStack;
 import com.avaje.ebean.bean.ObjectGraphNode;
 import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.config.dbplatform.DatabasePlatform;
+import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.autofetch.AutoFetchManager;
 import com.avaje.ebeaninternal.server.core.PstmtBatch;
 import com.avaje.ebeaninternal.server.core.SpiOrmQueryRequest;
@@ -69,6 +70,11 @@ public interface SpiEbeanServer extends EbeanServer, BeanLoader, BeanCollectionL
    * Return the DDL generator.
    */
   public DdlGenerator getDdlGenerator();
+
+  /**
+   * Return the IndexUpdateProcessor.
+   */
+  public IndexUpdateProcessor getIndexUpdateProcessor();
 
   /**
    * Return the AutoFetchListener.

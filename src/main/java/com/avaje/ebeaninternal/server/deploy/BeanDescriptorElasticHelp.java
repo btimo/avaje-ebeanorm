@@ -1,14 +1,21 @@
 package com.avaje.ebeaninternal.server.deploy;
 
+import com.avaje.ebean.PersistenceIOException;
+import com.avaje.ebean.Query;
+import com.avaje.ebean.QueryEachConsumer;
 import com.avaje.ebean.annotation.IndexEvent;
+import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.elastic.BulkElasticUpdate;
+import com.avaje.ebeaninternal.elastic.CallbackBulkElasticUpdate;
+import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.core.PersistRequest;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanDescriptor;
 import com.avaje.ebeaninternal.server.text.json.WriteJson;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
 
@@ -63,9 +70,10 @@ public class BeanDescriptorElasticHelp<T> {
     // determine from annotations on the properties
     PathProperties prop = new PathProperties();
 
+    //TODO: change to check annotations / Nested etc
     BeanProperty[] properties = desc.propertiesNonTransient();
 
-    for (int i = 0; i < properties.length ; i++) {
+    for (int i = 0; i < properties.length; i++) {
       if (!(properties[i] instanceof BeanPropertyAssocMany)) {
         prop.addToPath(null, properties[i].getName());
       }
@@ -73,6 +81,55 @@ public class BeanDescriptorElasticHelp<T> {
 
     return prop;
   }
+
+  public T indexGet(Object id) throws PersistenceIOException {
+
+    IndexUpdateProcessor indexUpdateProcessor = this.desc.getEbeanServer().getIndexUpdateProcessor();
+
+    try {
+      JsonParser docSource = indexUpdateProcessor.getDocSource(indexType, indexName, id);
+      return desc.jsonRead(docSource, null);
+
+    } catch (IOException e) {
+      throw new PersistenceIOException(e);
+    }
+  }
+
+  public void indexByQuery(Query<T> query, int bulkBatchSize) throws PersistenceIOException {
+
+    try {
+      IndexUpdateProcessor indexUpdateProcessor = this.desc.getEbeanServer().getIndexUpdateProcessor();
+      CallbackBulkElasticUpdate callback = indexUpdateProcessor.createCallbackBulkElasticUpdate(bulkBatchSize);
+
+      indexByQuery(query, callback);
+
+      callback.flush();
+
+    } catch (IOException e) {
+      throw new PersistenceIOException(e);
+    }
+  }
+
+  public void indexByQuery(Query<T> query, final CallbackBulkElasticUpdate callbackBulk) throws IOException {
+
+    query.apply(pathProperties);
+    query.findEach(new QueryEachConsumer<T>() {
+      @Override
+      public void accept(T bean) {
+
+        EntityBean entityBean = (EntityBean) bean;
+        Object idValue = desc.getId(entityBean);
+        try {
+          BulkElasticUpdate bulkElasticUpdate = callbackBulk.obtain();
+          writeIndexJson(idValue, entityBean, bulkElasticUpdate);
+        } catch (IOException e) {
+          throw new PersistenceIOException("Error writing Bulk update JSON", e);
+        }
+      }
+    });
+
+  }
+
 
   public String getQueueId() {
     return queueId;
@@ -90,10 +147,14 @@ public class BeanDescriptorElasticHelp<T> {
 
   public IndexEvent getIndexEvent(PersistRequest.Type persistType) {
     switch (persistType) {
-      case INSERT: return insert;
-      case UPDATE: return update;
-      case DELETE: return delete;
-      default: return IndexEvent.IGNORE;
+      case INSERT:
+        return insert;
+      case UPDATE:
+        return update;
+      case DELETE:
+        return delete;
+      default:
+        return IndexEvent.IGNORE;
     }
   }
 
@@ -113,22 +174,27 @@ public class BeanDescriptorElasticHelp<T> {
 
   public void deleteById(Object idValue, BulkElasticUpdate txn) throws IOException {
     JsonGenerator gen = txn.gen();
-    writeBulkHeader(gen, idValue, "delete", null);
+    writeBulkHeader(gen, idValue, "delete");
   }
 
   public void delete(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
     JsonGenerator gen = txn.gen();
-    writeBulkHeader(gen, idValue, "delete", persistRequest);
+    writeBulkHeader(gen, idValue, "delete");
   }
 
   public void insert(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
 
+    writeIndexJson(idValue, persistRequest.getEntityBean(), txn);
+  }
+
+  protected void writeIndexJson(Object idValue, EntityBean entityBean, BulkElasticUpdate txn) throws IOException {
+
     JsonGenerator gen = txn.gen();
-    writeBulkHeader(gen, idValue, "index", persistRequest);
+    writeBulkHeader(gen, idValue, "index");
 
     // use the pathProperties for 'index' requests
     WriteJson writeJson = createWriteJson(gen, pathProperties);
-    desc.jsonWrite(writeJson, persistRequest.getEntityBean());
+    desc.jsonWrite(writeJson, entityBean);
     gen.writeRaw("\n");
   }
 
@@ -136,7 +202,7 @@ public class BeanDescriptorElasticHelp<T> {
   public void update(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
 
     JsonGenerator gen = txn.gen();
-    writeBulkHeader(gen, idValue, "update", persistRequest);
+    writeBulkHeader(gen, idValue, "update");
 
     // only the 'dirty' properties included in 'update' request
     WriteJson writeJson = createWriteJson(gen, null);
@@ -147,7 +213,7 @@ public class BeanDescriptorElasticHelp<T> {
     gen.writeRaw("\n");
   }
 
-  public void writeBulkHeader(JsonGenerator gen, Object idValue, String event, PersistRequestBean<T> persistRequest) throws IOException {
+  public void writeBulkHeader(JsonGenerator gen, Object idValue, String event) throws IOException {
 
     gen.writeStartObject();
     gen.writeFieldName(event);

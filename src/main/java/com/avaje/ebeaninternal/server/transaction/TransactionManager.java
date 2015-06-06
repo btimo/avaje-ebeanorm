@@ -2,28 +2,20 @@ package com.avaje.ebeaninternal.server.transaction;
 
 import com.avaje.ebean.BackgroundExecutor;
 import com.avaje.ebean.annotation.IndexEvent;
-import com.avaje.ebean.config.ElasticConfig;
 import com.avaje.ebean.config.PersistBatch;
 import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.config.dbplatform.DatabasePlatform.OnQueryOnly;
 import com.avaje.ebean.event.TransactionEventListener;
-import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEvent;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
 import com.avaje.ebeaninternal.api.TransactionEventTable.TableIUD;
-import com.avaje.ebeaninternal.elastic.BulkMessageSender;
-import com.avaje.ebeaninternal.elastic.IndexQueue;
 import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.elastic.IndexUpdates;
-import com.avaje.ebeaninternal.elastic.base.BaseHttpMessageSender;
-import com.avaje.ebeaninternal.elastic.base.BaseIndexQueue;
-import com.avaje.ebeaninternal.elastic.base.BaseIndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.cluster.ClusterManager;
 import com.avaje.ebeaninternal.server.core.BootupClasses;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
 import com.avaje.ebeaninternal.server.lib.sql.DataSourcePool;
-import com.fasterxml.jackson.core.JsonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,8 +91,8 @@ public class TransactionManager {
   /**
    * Create the TransactionManager
    */
-  public TransactionManager(SpiEbeanServer server, ClusterManager clusterManager, BackgroundExecutor backgroundExecutor,
-                            ServerConfig config, BeanDescriptorManager descMgr, BootupClasses bootupClasses) {
+  public TransactionManager(ServerConfig config, ClusterManager clusterManager, BackgroundExecutor backgroundExecutor, IndexUpdateProcessor indexUpdateProcessor,
+                            BeanDescriptorManager descMgr, BootupClasses bootupClasses) {
 
     this.persistBatch = config.getPersistBatch();
     this.persistBatchOnCascade = config.appliedPersistBatchOnCascade();
@@ -109,7 +101,7 @@ public class TransactionManager {
     this.serverName = config.getName();
     this.backgroundExecutor = backgroundExecutor;
     this.dataSource = config.getDataSource();
-    this.indexUpdateProcessor = createIndexUpdateProcessor(server, config);
+    this.indexUpdateProcessor = indexUpdateProcessor;
     this.bulkEventListenerMap = new BulkEventListenerMap(config.getBulkTableEventListeners());
 
     List<TransactionEventListener> transactionEventListeners = bootupClasses.getTransactionEventListeners();
@@ -121,16 +113,6 @@ public class TransactionManager {
     this.onQueryOnly = initOnQueryOnly(config.getDatabasePlatform().getOnQueryOnly(), dataSource);
 
     initialiseHeartbeat();
-  }
-
-  private IndexUpdateProcessor createIndexUpdateProcessor(SpiEbeanServer server, ServerConfig config) {
-
-    //TODO: Move this out ...
-    ElasticConfig elasticConfig = config.getElasticConfig();
-    JsonFactory jsonFactory = new JsonFactory();
-    IndexQueue indexQueue = new BaseIndexQueue(server, "eb_elastic_queue");
-    BulkMessageSender messageSender = new BaseHttpMessageSender(elasticConfig.getUrl());
-    return new BaseIndexUpdateProcessor(indexQueue, jsonFactory, messageSender, elasticConfig.getBulkBatchSize());
   }
 
   private void initialiseHeartbeat() {

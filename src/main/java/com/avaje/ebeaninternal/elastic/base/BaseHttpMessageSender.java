@@ -1,16 +1,16 @@
 package com.avaje.ebeaninternal.elastic.base;
 
 
-import com.avaje.ebeaninternal.elastic.BulkMessageSender;
+import com.avaje.ebeaninternal.elastic.IndexMessageSender;
+import com.avaje.ebeaninternal.elastic.IndexMessageSenderResponse;
 import com.squareup.okhttp.*;
 
 import java.io.IOException;
-import java.io.Writer;
 
 /**
  * Basic implementation for sending the JSON payload to the ElasticSearch Bulk API.
  */
-public class BaseHttpMessageSender implements BulkMessageSender {
+public class BaseHttpMessageSender implements IndexMessageSender {
 
   public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -21,8 +21,13 @@ public class BaseHttpMessageSender implements BulkMessageSender {
   final String bulkUrl;
 
   public BaseHttpMessageSender(String baseUrl) {
-    this.baseUrl = baseUrl;
-    this.bulkUrl = deriveBulkUrl(baseUrl);
+    this.baseUrl = normaliseBaseUrl(baseUrl);
+    this.bulkUrl = deriveBulkUrl(this.baseUrl);
+  }
+
+  protected String normaliseBaseUrl(String baseUrl) {
+    if (baseUrl == null) return null;
+    return baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
   }
 
   /**
@@ -31,18 +36,24 @@ public class BaseHttpMessageSender implements BulkMessageSender {
   protected String deriveBulkUrl(String baseUrl) {
 
     if (baseUrl == null) return null;
-
-    if (baseUrl.endsWith("_bulk")) {
-      return baseUrl;
-    } else if (baseUrl.endsWith("/")) {
-      return baseUrl+"_bulk";
-    } else {
-      return baseUrl+"/_bulk";
-    }
+    return baseUrl + "_bulk";
   }
 
   @Override
-  public String post(String json) throws IOException {
+  public IndexMessageSenderResponse getDocSource(String indexType, String indexName, String docId) throws IOException {
+
+    String url = baseUrl + indexType + "/" + indexName + "/" + docId + "/_source";
+    Request request = new Request.Builder()
+        .url(url)
+        .get().build();
+
+    Response response = client.newCall(request).execute();
+
+    return new IndexMessageSenderResponse(response.code(), response.body().string());
+  }
+
+  @Override
+  public String postBulk(String json) throws IOException {
 
     RequestBody body = RequestBody.create(JSON, json);
     Request request = new Request.Builder()

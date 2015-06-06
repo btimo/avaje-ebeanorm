@@ -17,7 +17,7 @@ public class ElasticConfigTest {
     Properties properties = new Properties();
     properties.setProperty("ebean.elastic.active", "true");
     properties.setProperty("ebean.elastic.bulkBatchSize", "99");
-    properties.setProperty("ebean.elastic.url", "someurl");
+    properties.setProperty("ebean.elastic.url", "http://foo:9800");
     properties.setProperty("ebean.elastic.persist", "IGNORE");
 
     PropertiesWrapper wrapper = new PropertiesWrapper("ebean", null, properties);
@@ -25,7 +25,7 @@ public class ElasticConfigTest {
     config.loadSettings(wrapper);
 
     assertTrue(config.isActive());
-    assertEquals("someurl", config.getUrl());
+    assertEquals("http://foo:9800", config.getUrl());
     assertEquals(IndexEvent.IGNORE, config.getPersist());
     assertEquals(99, config.getBulkBatchSize());
 

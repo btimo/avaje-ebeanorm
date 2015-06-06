@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.deploy;
 
+import com.avaje.ebean.Query;
 import com.avaje.ebean.SqlUpdate;
 import com.avaje.ebean.Transaction;
 import com.avaje.ebean.annotation.ConcurrencyMode;
@@ -682,6 +683,14 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
    */
   public String getElasticQueueId() {
     return elasticQueueId;
+  }
+
+  public T indexGet(Object id) {
+    return elasticHelp.indexGet(id);
+  }
+
+  public void indexByQuery(Query<T> query, int bulkBatchSize) {
+    elasticHelp.indexByQuery(query, bulkBatchSize);
   }
 
   /**

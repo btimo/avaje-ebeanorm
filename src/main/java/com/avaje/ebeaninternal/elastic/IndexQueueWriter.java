@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Pushes queue entries onto a queue for future processing.
  */
-public interface IndexQueue {
+public interface IndexQueueWriter {
 
   /**
    * Push all the queue entries onto the queue.

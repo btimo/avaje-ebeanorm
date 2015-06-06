@@ -1,14 +1,14 @@
 package com.avaje.ebeaninternal.server.transaction;
 
-import java.sql.Connection;
-
 import com.avaje.ebean.BackgroundExecutor;
 import com.avaje.ebean.config.ServerConfig;
-import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiTransaction;
+import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.cluster.ClusterManager;
 import com.avaje.ebeaninternal.server.core.BootupClasses;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
+
+import java.sql.Connection;
 
 /**
  * AutoCommit based TransactionManager.
@@ -17,10 +17,10 @@ import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
  */
 public class AutoCommitTransactionManager extends TransactionManager {
 
-  public AutoCommitTransactionManager(SpiEbeanServer server, ClusterManager clusterManager, BackgroundExecutor backgroundExecutor,
-      ServerConfig config, BeanDescriptorManager descMgr, BootupClasses bootupClasses) {
+  public AutoCommitTransactionManager(ServerConfig serverConfig, ClusterManager clusterManager, BackgroundExecutor backgroundExecutor,
+          IndexUpdateProcessor indexUpdateProcessor, BeanDescriptorManager descMgr, BootupClasses bootupClasses) {
     
-    super(server, clusterManager, backgroundExecutor, config, descMgr, bootupClasses);
+    super(serverConfig, clusterManager, backgroundExecutor, indexUpdateProcessor, descMgr, bootupClasses);
   }
 
   /**

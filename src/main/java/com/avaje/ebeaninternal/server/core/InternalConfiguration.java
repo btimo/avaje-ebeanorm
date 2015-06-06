@@ -2,6 +2,13 @@ package com.avaje.ebeaninternal.server.core;
 
 import javax.sql.DataSource;
 
+import com.avaje.ebean.config.ElasticConfig;
+import com.avaje.ebeaninternal.elastic.IndexMessageSender;
+import com.avaje.ebeaninternal.elastic.IndexQueueWriter;
+import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
+import com.avaje.ebeaninternal.elastic.base.BaseHttpMessageSender;
+import com.avaje.ebeaninternal.elastic.base.BaseIndexQueueWriterWriter;
+import com.avaje.ebeaninternal.elastic.base.BaseIndexUpdateProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -224,16 +231,25 @@ public class InternalConfiguration {
     return backgroundExecutor;
   }
 
+  public IndexUpdateProcessor createIndexUpdateProcessor(SpiEbeanServer server) {
+
+    ElasticConfig elasticConfig = serverConfig.getElasticConfig();
+    JsonFactory jsonFactory = new JsonFactory();
+    IndexQueueWriter indexQueueWriter = new BaseIndexQueueWriterWriter(server, "eb_elastic_queue");
+    IndexMessageSender messageSender = new BaseHttpMessageSender(elasticConfig.getUrl());
+    return new BaseIndexUpdateProcessor(indexQueueWriter, jsonFactory, messageSender, elasticConfig.getBulkBatchSize());
+  }
+
   /**
    * Create the TransactionManager taking into account autoCommit mode.
    */
-  public TransactionManager createTransactionManager(SpiEbeanServer server) {
+  public TransactionManager createTransactionManager(SpiEbeanServer server, IndexUpdateProcessor indexUpdateProcessor) {
 
     if (isAutoCommitMode()) {
-      return new AutoCommitTransactionManager(server, clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
+      return new AutoCommitTransactionManager(serverConfig, clusterManager, backgroundExecutor, indexUpdateProcessor, beanDescriptorManager, this.getBootupClasses());
     }
 
-    return new TransactionManager(server, clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
+    return new TransactionManager(serverConfig, clusterManager, backgroundExecutor, indexUpdateProcessor, beanDescriptorManager, this.getBootupClasses());
   }
 
   /**
