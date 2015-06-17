@@ -14,6 +14,7 @@ import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import com.avaje.ebean.annotation.ElasticEmbedded;
 import com.avaje.ebean.annotation.ElasticIndex;
 import com.avaje.ebean.annotation.EnumValue;
 import com.avaje.ebean.annotation.Where;
@@ -60,9 +61,11 @@ public class Customer extends BasicDomain {
   @NotNull(groups = { ValidationGroupSomething.class })
   Date anniversary;
 
+  @ElasticEmbedded(doc="*,country(*)")
   @ManyToOne(cascade = CascadeType.ALL)
   Address billingAddress;
 
+  @ElasticEmbedded(doc="*,country(*)")
   @ManyToOne(cascade = CascadeType.ALL)
   Address shippingAddress;
 

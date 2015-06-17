@@ -15,6 +15,13 @@ public @interface ElasticEmbedded {
   /**
    * The properties on the embedded bean to include in the index.
    */
-  String properties() default "";
+  String doc() default "";
 
+  /**
+   * Set to true if you want a OneToMany to NOT be 'Nested'.
+   * <p>
+   *   Not aware of any case to turn this on yet.
+   * </p>
+   */
+  boolean flatten() default false;
 }

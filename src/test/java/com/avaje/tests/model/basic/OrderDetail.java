@@ -33,7 +33,7 @@ public class OrderDetail implements Serializable {
     Double unitPrice;
 
     @ManyToOne
-    @ElasticEmbedded(properties = "id,name,sku")
+    @ElasticEmbedded(doc = "id,name,sku")
     Product product;
 
     Timestamp cretime;

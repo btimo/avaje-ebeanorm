@@ -11,6 +11,7 @@ import javax.persistence.Version;
 
 import com.avaje.ebean.annotation.CacheStrategy;
 import com.avaje.ebean.annotation.CreatedTimestamp;
+import com.avaje.ebean.annotation.ElasticEmbedded;
 import com.avaje.ebean.annotation.ElasticIndex;
 
 @ElasticIndex
@@ -30,6 +31,7 @@ public class Contact {
     String mobile;
     String email;
 
+    @ElasticEmbedded(doc="id,name")
     @ManyToOne(optional=false)
     Customer customer;
     
