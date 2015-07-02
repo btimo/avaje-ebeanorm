@@ -13,6 +13,7 @@ import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.server.core.PersistRequest;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanDescriptor;
+import com.avaje.ebeaninternal.server.text.json.ReadJson;
 import com.avaje.ebeaninternal.server.text.json.WriteJson;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -87,8 +88,9 @@ public class BeanDescriptorElasticHelp<T> {
     IndexUpdateProcessor indexUpdateProcessor = this.desc.getEbeanServer().getIndexUpdateProcessor();
 
     try {
-      JsonParser docSource = indexUpdateProcessor.getDocSource(indexType, indexName, id);
-      return desc.jsonRead(docSource, null);
+      JsonParser jsonParser = indexUpdateProcessor.getDocSource(indexType, indexName, id);
+      ReadJson readJson= new ReadJson(jsonParser, null);
+      return desc.jsonRead(readJson, null);
 
     } catch (IOException e) {
       throw new PersistenceIOException(e);

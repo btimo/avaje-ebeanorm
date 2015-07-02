@@ -107,7 +107,7 @@ public final class PostCommitProcessing {
    */
   protected void processIndexUpdates() {
 
-    if (txnIndexMode == null || txnIndexMode != IndexEvent.IGNORE) {
+    if (isIndexUpdateTransaction()) {
       // collect 'bulk update' and 'queue' events
       IndexUpdates indexUpdates = new IndexUpdates();
       event.addToIndexUpdates(indexUpdates);
@@ -120,6 +120,13 @@ public final class PostCommitProcessing {
         manager.processIndexUpdates(indexUpdates, txnIndexBulkBatchSize);
       }
     }
+  }
+
+  /**
+   * Return true if updates to the Elastic search index for occur for this transaction.
+   */
+  private boolean isIndexUpdateTransaction() {
+    return manager.isElasticActive() && (txnIndexMode == null || txnIndexMode != IndexEvent.IGNORE);
   }
 
   public void notifyCluster() {

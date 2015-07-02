@@ -1215,39 +1215,39 @@ public interface EbeanServer {
    */
   <T> T indexGet(Class<T> beanType, Object id);
 
-    /**
-     * Either Insert or Update the bean depending on its state.
-     * <p>
-     * If there is no current transaction one will be created and committed for
-     * you automatically.
-     * </p>
-     * <p>
-     * Save can cascade along relationships. For this to happen you need to
-     * specify a cascade of CascadeType.ALL or CascadeType.PERSIST on the
-     * OneToMany, OneToOne or ManyToMany annotation.
-     * </p>
-     * <p>
-     * In this example below the details property has a CascadeType.ALL set so
-     * saving an order will also save all its details.
-     * </p>
-     *
-     * <pre>{@code
-     *   public class Order { ...
-     *
-     * 	   @OneToMany(cascade=CascadeType.ALL, mappedBy="order")
-     * 	   @JoinColumn(name="order_id")
-     * 	   List<OrderDetail> details;
-     * 	   ...
-     *   }
-     * }</pre>
-     *
-     * <p>
-     * When a save cascades via a OneToMany or ManyToMany Ebean will automatically
-     * set the 'parent' object to the 'detail' object. In the example below in
-     * saving the order and cascade saving the order details the 'parent' order
-     * will be set against each order detail when it is saved.
-     * </p>
-     */
+  /**
+   * Either Insert or Update the bean depending on its state.
+   * <p>
+   * If there is no current transaction one will be created and committed for
+   * you automatically.
+   * </p>
+   * <p>
+   * Save can cascade along relationships. For this to happen you need to
+   * specify a cascade of CascadeType.ALL or CascadeType.PERSIST on the
+   * OneToMany, OneToOne or ManyToMany annotation.
+   * </p>
+   * <p>
+   * In this example below the details property has a CascadeType.ALL set so
+   * saving an order will also save all its details.
+   * </p>
+   *
+   * <pre>{@code
+   *   public class Order { ...
+   *
+   * 	   @OneToMany(cascade=CascadeType.ALL, mappedBy="order")
+   * 	   @JoinColumn(name="order_id")
+   * 	   List<OrderDetail> details;
+   * 	   ...
+   *   }
+   * }</pre>
+   *
+   * <p>
+   * When a save cascades via a OneToMany or ManyToMany Ebean will automatically
+   * set the 'parent' object to the 'detail' object. In the example below in
+   * saving the order and cascade saving the order details the 'parent' order
+   * will be set against each order detail when it is saved.
+   * </p>
+   */
   void save(Object bean) throws OptimisticLockException;
 
   /**

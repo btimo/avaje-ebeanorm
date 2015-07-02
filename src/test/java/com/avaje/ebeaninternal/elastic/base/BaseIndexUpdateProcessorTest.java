@@ -6,6 +6,7 @@ import com.avaje.ebeaninternal.elastic.*;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.tests.model.basic.Contact;
 import com.fasterxml.jackson.core.JsonFactory;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ public class BaseIndexUpdateProcessorTest {
     return new BaseIndexUpdateProcessor(indexQueue, jsonFactory, messageSender, 1000);
   }
 
+  @Ignore
   @Test
   public void testProcess() throws Exception {
 

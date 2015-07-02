@@ -12,7 +12,7 @@ import com.avaje.ebean.bean.PersistenceContext;
 import com.avaje.ebean.config.EncryptKey;
 import com.avaje.ebean.config.dbplatform.IdGenerator;
 import com.avaje.ebean.config.dbplatform.IdType;
-import com.avaje.ebean.event.BeanFinder;
+import com.avaje.ebean.event.BeanFindController;
 import com.avaje.ebean.event.BeanPersistController;
 import com.avaje.ebean.event.BeanPersistListener;
 import com.avaje.ebean.event.BeanQueryAdapter;
@@ -27,16 +27,17 @@ import com.avaje.ebeaninternal.server.deploy.id.IdBinder;
 import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanPropertyLists;
 import com.avaje.ebeaninternal.server.el.*;
+import com.avaje.ebeaninternal.server.persist.DmlUtil;
 import com.avaje.ebeaninternal.server.query.CQueryPlan;
 import com.avaje.ebeaninternal.server.query.CQueryPlanStats.Snapshot;
 import com.avaje.ebeaninternal.server.query.SplitName;
 import com.avaje.ebeaninternal.server.querydefn.OrmQueryDetail;
+import com.avaje.ebeaninternal.server.text.json.ReadJson;
 import com.avaje.ebeaninternal.server.text.json.WriteJson;
 import com.avaje.ebeaninternal.server.type.DataBind;
 import com.avaje.ebeaninternal.util.SortByClause;
 import com.avaje.ebeaninternal.util.SortByClause.Property;
 import com.avaje.ebeaninternal.util.SortByClauseParser;
-import com.fasterxml.jackson.core.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,7 +152,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   /**
    * If set overrides the find implementation. Server side only.
    */
-  private final BeanFinder<T> beanFinder;
+  private final BeanFindController beanFinder;
 
   /**
    * The table joins for this bean.
@@ -786,7 +787,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   }
 
   public void cacheBeanPut(T bean) {
-    cacheBeanPutData((EntityBean)bean);
+    cacheBeanPutData((EntityBean) bean);
   }
   
   /**
@@ -1536,7 +1537,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   /**
    * Return the beanFinder. Usually null unless overriding the finder.
    */
-  public BeanFinder<T> getBeanFinder() {
+  public BeanFindController getBeanFinder() {
     return beanFinder;
   }
 
@@ -1548,16 +1549,34 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   }
 
   /**
+   * De-register the BeanPersistListener.
+   */
+  public void deregister(BeanPersistListener listener) {
+
+    // volatile read...
+    BeanPersistListener currentListener = persistListener;
+    if (currentListener != null) {
+      if (currentListener instanceof ChainedBeanPersistListener) {
+        // remove it from the existing chain
+        persistListener = ((ChainedBeanPersistListener) currentListener).deregister(listener);
+      } else if (currentListener.equals(listener)) {
+        persistListener = null;
+      }
+    }
+  }
+
+  /**
    * De-register the BeanPersistController.
    */
   public void deregister(BeanPersistController controller) {
+
     // volatile read...
-    BeanPersistController c = persistController;
-    if (c != null) {
-      if (c instanceof ChainedBeanPersistController) {
+    BeanPersistController currentController = persistController;
+    if (currentController != null) {
+      if (currentController instanceof ChainedBeanPersistController) {
         // remove it from the existing chain
-        persistController = ((ChainedBeanPersistController) c).deregister(controller);
-      } else if (c.equals(controller)) {
+        persistController = ((ChainedBeanPersistController) currentController).deregister(controller);
+      } else if (currentController.equals(controller)) {
         persistController = null;
       }
     }
@@ -1571,16 +1590,16 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
 
     if (newPersistListener.isRegisterFor(beanType)) {
       // volatile read...
-      BeanPersistListener currListener = persistListener;
-      if (currListener == null) {
+      BeanPersistListener currentListener = persistListener;
+      if (currentListener == null) {
         persistListener = newPersistListener;
       } else {
-        if (currListener instanceof ChainedBeanPersistListener) {
+        if (currentListener instanceof ChainedBeanPersistListener) {
           // add it to the existing chain
-          persistListener = ((ChainedBeanPersistListener) currListener).register(newPersistListener);
+          persistListener = ((ChainedBeanPersistListener) currentListener).register(newPersistListener);
         } else {
           // build new chain of the 2
-          persistListener = new ChainedBeanPersistListener(currListener, newPersistListener);
+          persistListener = new ChainedBeanPersistListener(currentListener, newPersistListener);
         }
       }
     }
@@ -1593,16 +1612,16 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
 
     if (newController.isRegisterFor(beanType)) {
       // volatile read...
-      BeanPersistController c = persistController;
-      if (c == null) {
+      BeanPersistController currentController = persistController;
+      if (currentController == null) {
         persistController = newController;
       } else {
-        if (c instanceof ChainedBeanPersistController) {
+        if (currentController instanceof ChainedBeanPersistController) {
           // add it to the existing chain
-          persistController = ((ChainedBeanPersistController) c).register(newController);
+          persistController = ((ChainedBeanPersistController) currentController).register(newController);
         } else {
           // build new chain of the 2
-          persistController = new ChainedBeanPersistController(c, newController);
+          persistController = new ChainedBeanPersistController(currentController, newController);
         }
       }
     }
@@ -1736,7 +1755,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
       // not using Id generator so just base on isLoaded() 
       return !ebi.isLoaded();
     }
-    if (!hasIdProperty(ebi)) {
+    if (!hasIdValue(ebi.getOwner())) {
       // No Id property means it must be an insert
       return true;
     }
@@ -1751,9 +1770,9 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
   public boolean hasIdPropertyOnly(EntityBeanIntercept ebi) {
     return ebi.hasIdOnly(idPropertyIndex);
   }
-  
-  public boolean hasIdProperty(EntityBeanIntercept ebi) {
-    return idPropertyIndex > -1 && ebi.isLoadedProperty(idPropertyIndex);
+
+  public boolean hasIdValue(EntityBean bean) {
+    return (idProperty != null && !DmlUtil.isNullOrZero(idProperty.getValue(bean)));
   }
 
   public boolean hasVersionProperty(EntityBeanIntercept ebi) {
@@ -1923,11 +1942,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo {
     jsonHelp.jsonWriteProperties(writeJson, bean);
   }
     
-  public T jsonRead(JsonParser parser, String path) throws IOException {
-    return jsonHelp.jsonRead(parser, path);
+  public T jsonRead(ReadJson jsonRead, String path) throws IOException {
+    return jsonHelp.jsonRead(jsonRead, path);
   }
   
-  protected T jsonReadObject(JsonParser parser, String path) throws IOException {
-    return jsonHelp.jsonReadObject(parser, path);
+  protected T jsonReadObject(ReadJson jsonRead, String path) throws IOException {
+    return jsonHelp.jsonReadObject(jsonRead, path);
   }
 }

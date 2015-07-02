@@ -115,12 +115,12 @@ public interface SpiTransaction extends Transaction {
    */
   int getIndexBulkBatchSize();
 
-    /**
-     * Return the batchSize specifically set for this transaction or 0.
-     * <p>
-     * Returning 0 implies to use the system wide default batch size.
-     * </p>
-     */
+	/**
+	 * Return the batchSize specifically set for this transaction or 0.
+	 * <p>
+	 * Returning 0 implies to use the system wide default batch size.
+	 * </p>
+	 */
   int getBatchSize();
 
   /**
@@ -170,12 +170,12 @@ public interface SpiTransaction extends Transaction {
   boolean isBatchThisRequest(PersistRequest.Type type);
 
   /**
-   * Return the queueIndex used to batch up persist requests.
+   * Return the BatchControl used to batch up persist requests.
    */
   BatchControl getBatchControl();
 
   /**
-   * Set the queueIndex used to batch up persist requests. There should only be one
+   * Set the BatchControl used to batch up persist requests. There should only be one
    * PersistQueue set per transaction.
    */
   void setBatchControl(BatchControl control);
@@ -242,6 +242,5 @@ public interface SpiTransaction extends Transaction {
    * Flush batch if we escalated batch mode on saving or deleting a collection.
    */
   void flushBatchOnCollection();
-
 
 }

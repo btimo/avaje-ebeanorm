@@ -236,6 +236,7 @@ public class ServerConfig {
   private boolean uuidStoreAsBinary;
 
 
+  private List<BeanFindController> findControllers = new ArrayList<BeanFindController>();
   private List<BeanPersistController> persistControllers = new ArrayList<BeanPersistController>();
   private List<BeanPersistListener> persistListeners = new ArrayList<BeanPersistListener>();
   private List<BeanQueryAdapter> queryAdapters = new ArrayList<BeanQueryAdapter>();
@@ -1559,6 +1560,14 @@ public class ServerConfig {
     persistControllers.add(beanPersistController);
   }
 
+  public List<BeanFindController> getFindControllers() {
+    return findControllers;
+  }
+
+  public void setFindControllers(List<BeanFindController> findControllers) {
+    this.findControllers = findControllers;
+  }
+
   /**
    * Return the BeanPersistController instances.
    */
@@ -1850,8 +1859,7 @@ public class ServerConfig {
 
     String classNames = properties.get("classes", null);
     if (classNames == null) {
-
-      return null;
+      return classes;
     }
 
     List<Class<?>> classes = new ArrayList<Class<?>>();

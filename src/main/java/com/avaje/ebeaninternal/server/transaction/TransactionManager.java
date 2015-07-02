@@ -69,6 +69,8 @@ public class TransactionManager {
 
   protected final String serverName;
 
+  protected final boolean elasticActive;
+
   /**
    * The elastic search index update processor.
    */
@@ -101,6 +103,7 @@ public class TransactionManager {
     this.serverName = config.getName();
     this.backgroundExecutor = backgroundExecutor;
     this.dataSource = config.getDataSource();
+    this.elasticActive = config.getElasticConfig().isActive();
     this.indexUpdateProcessor = indexUpdateProcessor;
     this.bulkEventListenerMap = new BulkEventListenerMap(config.getBulkTableEventListeners());
 
@@ -126,6 +129,10 @@ public class TransactionManager {
     if (shutdownDataSource && (dataSource instanceof DataSourcePool)) {
       ((DataSourcePool) dataSource).shutdown(deregisterDriver);
     }
+  }
+
+  public boolean isElasticActive() {
+    return elasticActive;
   }
 
   public BeanDescriptorManager getBeanDescriptorManager() {
