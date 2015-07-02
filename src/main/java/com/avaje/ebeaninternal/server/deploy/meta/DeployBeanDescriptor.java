@@ -7,7 +7,7 @@ import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.config.TableName;
 import com.avaje.ebean.config.dbplatform.IdGenerator;
 import com.avaje.ebean.config.dbplatform.IdType;
-import com.avaje.ebean.event.BeanFinder;
+import com.avaje.ebean.event.BeanFindController;
 import com.avaje.ebean.event.BeanPersistController;
 import com.avaje.ebean.event.BeanPersistListener;
 import com.avaje.ebean.event.BeanQueryAdapter;
@@ -114,7 +114,7 @@ public class DeployBeanDescriptor<T> {
   /**
    * If set overrides the find implementation. Server side only.
    */
-  private BeanFinder<T> beanFinder;
+  private BeanFindController beanFinder;
 
   /**
    * The table joins for this bean. Server side only.
@@ -378,7 +378,7 @@ public class DeployBeanDescriptor<T> {
   /**
    * Return the beanFinder. Usually null unless overriding the finder.
    */
-  public BeanFinder<T> getBeanFinder() {
+  public BeanFindController getBeanFinder() {
     return beanFinder;
   }
 
@@ -386,7 +386,7 @@ public class DeployBeanDescriptor<T> {
    * Set the BeanFinder to use for beans of this type. This is set to override
    * the finding from the default.
    */
-  public void setBeanFinder(BeanFinder<T> beanFinder) {
+  public void setBeanFinder(BeanFindController beanFinder) {
     this.beanFinder = beanFinder;
   }
 

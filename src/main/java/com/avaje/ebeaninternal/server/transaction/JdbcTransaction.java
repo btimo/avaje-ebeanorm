@@ -116,7 +116,7 @@ public class JdbcTransaction implements SpiTransaction {
   /**
    * Set to true if the connection has autoCommit=true initially.
    */
-  protected final boolean autoCommit;
+  protected boolean autoCommit;
 
   protected IdentityHashMap<Object, Object> persistingBeans;
 
@@ -155,11 +155,13 @@ public class JdbcTransaction implements SpiTransaction {
       this.batchOnCascadeMode = manager == null ? PersistBatch.NONE : manager.getPersistBatchOnCascade();
       this.onQueryOnly = manager == null ? OnQueryOnly.ROLLBACK : manager.getOnQueryOnly();
       this.persistenceContext = new DefaultPersistenceContext();
-      this.autoCommit = connection.getAutoCommit();
-      if (this.autoCommit) {
-        connection.setAutoCommit(false);
+      
+      if (connection != null) {
+        this.autoCommit = connection.getAutoCommit();
+        if (this.autoCommit) {
+          connection.setAutoCommit(false);
+        }
       }
-
     } catch (Exception e) {
       throw new PersistenceException(e);
     }

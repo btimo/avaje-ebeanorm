@@ -156,7 +156,7 @@ public class InternalConfiguration {
   }
 
   public OrmQueryEngine createOrmQueryEngine() {
-    return new DefaultOrmQueryEngine(beanDescriptorManager, cQueryEngine);
+    return new DefaultOrmQueryEngine(cQueryEngine);
   }
 
   public Persister createPersister(SpiEbeanServer server) {
