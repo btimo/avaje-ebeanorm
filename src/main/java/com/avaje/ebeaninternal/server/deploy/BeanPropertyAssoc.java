@@ -23,350 +23,368 @@ import com.avaje.ebeaninternal.server.query.SqlJoinType;
  */
 public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 
-	private static final Logger logger = LoggerFactory.getLogger(BeanPropertyAssoc.class);
+  private static final Logger logger = LoggerFactory.getLogger(BeanPropertyAssoc.class);
 
-	/**
-	 * The descriptor of the target. This MUST be initialised after construction
-	 * so as to avoid a dependency loop between BeanDescriptors.
-	 */
-	BeanDescriptor<T> targetDescriptor;
+  /**
+   * The descriptor of the target. This MUST be initialised after construction
+   * so as to avoid a dependency loop between BeanDescriptors.
+   */
+  BeanDescriptor<T> targetDescriptor;
 
-	IdBinder targetIdBinder;
+  IdBinder targetIdBinder;
 
-	InheritInfo targetInheritInfo;
-	
-	String targetIdProperty;
+  InheritInfo targetInheritInfo;
 
-	/**
-	 * Persist settings.
-	 */
-	final BeanCascadeInfo cascadeInfo;
+  String targetIdProperty;
 
-	/**
-	 * Join between the beans.
-	 */
-	final TableJoin tableJoin;
+  /**
+   * Persist settings.
+   */
+  final BeanCascadeInfo cascadeInfo;
 
-	/**
-	 * The type of the joined bean.
-	 */
-	final Class<T> targetType;
+  /**
+   * Join between the beans.
+   */
+  final TableJoin tableJoin;
 
-	/**
-	 * The join table information.
-	 */
-	final BeanTable beanTable;
-	
-	final String mappedBy;
+  /**
+   * The type of the joined bean.
+   */
+  final Class<T> targetType;
 
-	/**
-	 * Whether the associated join type should be an outer join.
-	 */
-	final boolean isOuterJoin;
+  /**
+   * The join table information.
+   */
+  final BeanTable beanTable;
 
-	String extraWhere;
+  final String mappedBy;
 
-	boolean saveRecurseSkippable;
+  /**
+   * Whether the associated join type should be an outer join.
+   */
+  final boolean isOuterJoin;
 
-	boolean deleteRecurseSkippable;
+  final String elasticDoc;
+  
+  final boolean elasticFlatten;
 
-	/**
-	 * Construct the property.
-	 */
-	public BeanPropertyAssoc(BeanDescriptorMap owner, BeanDescriptor<?> descriptor, DeployBeanPropertyAssoc<T> deploy) {
-		super(descriptor, deploy);
-		this.extraWhere = InternString.intern(deploy.getExtraWhere());
-		this.isOuterJoin = deploy.isOuterJoin();
-		this.beanTable = deploy.getBeanTable();
-		this.mappedBy = InternString.intern(deploy.getMappedBy());
+  String extraWhere;
 
-		this.tableJoin = new TableJoin(deploy.getTableJoin(), null);
+  boolean saveRecurseSkippable;
 
-		this.targetType = deploy.getTargetType();
-		this.cascadeInfo = deploy.getCascadeInfo();
-	}
-	
-	/**
-	 * Initialise post construction.
-	 */
-	@Override
-	public void initialise() {
-		// this *MUST* execute after the BeanDescriptor is
-		// put into the map to stop infinite recursion
-		if (!isTransient){
-			targetDescriptor = descriptor.getBeanDescriptor(targetType);
-			targetIdBinder = targetDescriptor.getIdBinder();
-			targetInheritInfo = targetDescriptor.getInheritInfo();
+  boolean deleteRecurseSkippable;
 
-			saveRecurseSkippable = targetDescriptor.isSaveRecurseSkippable();
-			deleteRecurseSkippable = targetDescriptor.isDeleteRecurseSkippable();
+  /**
+   * Construct the property.
+   */
+  public BeanPropertyAssoc(BeanDescriptorMap owner, BeanDescriptor<?> descriptor, DeployBeanPropertyAssoc<T> deploy) {
+    super(descriptor, deploy);
+    this.extraWhere = InternString.intern(deploy.getExtraWhere());
+    this.isOuterJoin = deploy.isOuterJoin();
+    this.beanTable = deploy.getBeanTable();
+    this.mappedBy = InternString.intern(deploy.getMappedBy());
 
-			cascadeValidate = cascadeInfo.isValidate();
+    this.elasticDoc = deploy.getElasticDoc();
+    this.elasticFlatten = deploy.isElasticFlatten();
+    this.tableJoin = new TableJoin(deploy.getTableJoin(), null);
 
-			if (!targetIdBinder.isComplexId()){
-				targetIdProperty = targetIdBinder.getIdProperty();
-			}
-		}
-	}
-	
-	/**
-     * Create a ElPropertyValue for a *ToOne or *ToMany.
-     */
-    protected ElPropertyValue createElPropertyValue(String propName, String remainder, ElPropertyChainBuilder chain, boolean propertyDeploy) {
-        
-        // associated or embedded bean
-        BeanDescriptor<?> embDesc = getTargetDescriptor();
-    
-        if (chain == null) {
-            chain = new ElPropertyChainBuilder(isEmbedded(), propName);
-        }
-        chain.add(this);
-        if (containsMany()) {
-            chain.setContainsMany(true);
-        }
-        return embDesc.buildElGetValue(remainder, chain, propertyDeploy);
+    this.targetType = deploy.getTargetType();
+    this.cascadeInfo = deploy.getCascadeInfo();
+  }
+
+  /**
+   * Initialise post construction.
+   */
+  @Override
+  public void initialise() {
+    // this *MUST* execute after the BeanDescriptor is
+    // put into the map to stop infinite recursion
+    if (!isTransient) {
+      targetDescriptor = descriptor.getBeanDescriptor(targetType);
+      targetIdBinder = targetDescriptor.getIdBinder();
+      targetInheritInfo = targetDescriptor.getInheritInfo();
+
+      saveRecurseSkippable = targetDescriptor.isSaveRecurseSkippable();
+      deleteRecurseSkippable = targetDescriptor.isDeleteRecurseSkippable();
+
+      cascadeValidate = cascadeInfo.isValidate();
+
+      if (!targetIdBinder.isComplexId()) {
+        targetIdProperty = targetIdBinder.getIdProperty();
+      }
     }
-	
-    /**
-	 * Add table join with table alias based on prefix.
-	 */
-    public SqlJoinType addJoin(SqlJoinType joinType, String prefix, DbSqlContext ctx) {
-    	return tableJoin.addJoin(joinType, prefix, ctx);
+  }
+
+  /**
+   * Create a ElPropertyValue for a *ToOne or *ToMany.
+   */
+  protected ElPropertyValue createElPropertyValue(String propName, String remainder, ElPropertyChainBuilder chain, boolean propertyDeploy) {
+
+    // associated or embedded bean
+    BeanDescriptor<?> embDesc = getTargetDescriptor();
+
+    if (chain == null) {
+      chain = new ElPropertyChainBuilder(isEmbedded(), propName);
     }
-    
-    /**
-	 * Add table join with explicit table alias.
-	 */
-    public SqlJoinType addJoin(SqlJoinType joinType, String a1, String a2, DbSqlContext ctx) {
-    	return tableJoin.addJoin(joinType, a1, a2, ctx);
+    chain.add(this);
+    if (containsMany()) {
+      chain.setContainsMany(true);
     }
-    
-	/**
-	 * Return false.
-	 */
-	public boolean isScalar() {
-		return false;
-	}
-	
-	/**
-	 * Return the mappedBy property.
-	 * This will be null on the owning side.
-	 */
-	public String getMappedBy() {
-		return mappedBy;
-	}
+    return embDesc.buildElGetValue(remainder, chain, propertyDeploy);
+  }
 
-	/**
-	 * Return the Id property of the target entity type.
-	 * <p>
-	 * This will return null for multiple Id properties.
-	 * </p>
-	 */
-	public String getTargetIdProperty() {
-		return targetIdProperty;
-	}
+  /**
+   * Add table join with table alias based on prefix.
+   */
+  public SqlJoinType addJoin(SqlJoinType joinType, String prefix, DbSqlContext ctx) {
+    return tableJoin.addJoin(joinType, prefix, ctx);
+  }
 
-	/**
-	 * Return the BeanDescriptor of the target.
-	 */
-	public BeanDescriptor<T> getTargetDescriptor() {
-		return targetDescriptor;
-	}
-	
-	public boolean isSaveRecurseSkippable(Object bean) {
-		if (!saveRecurseSkippable){
-			// we have to saveRecurse even if the bean is not dirty
-			// as this bean has cascade save on some of its properties
-			return false;
-		}
-		if (bean instanceof EntityBean){
-			return !((EntityBean)bean)._ebean_getIntercept().isNewOrDirty();
-		} else {
-			// we don't know so we say no
-			return false;
-		}
-	}
+  /**
+   * Add table join with explicit table alias.
+   */
+  public SqlJoinType addJoin(SqlJoinType joinType, String a1, String a2, DbSqlContext ctx) {
+    return tableJoin.addJoin(joinType, a1, a2, ctx);
+  }
 
-	/**
-	 * Return true if save can be skipped for unmodified bean(s) of this
-	 * property.
-	 * <p>
-	 * That is, if a bean of this property is unmodified we don't need to
-	 * saveRecurse because none of its associated beans have cascade save set to
-	 * true.
-	 * </p>
-	 */
-	public boolean isSaveRecurseSkippable() {
-		return saveRecurseSkippable;
-	}
+  /**
+   * Return false.
+   */
+  public boolean isScalar() {
+    return false;
+  }
 
-	/**
-	 * Similar to isSaveRecurseSkippable but in terms of delete.
-	 */
-	public boolean isDeleteRecurseSkippable() {
-		return deleteRecurseSkippable;
-	}
+  /**
+   * Return the mappedBy property.
+   * This will be null on the owning side.
+   */
+  public String getMappedBy() {
+    return mappedBy;
+  }
 
-	/**
-	 * Return true if the unique id properties are all not null for this bean.
-	 */
-	public boolean hasId(EntityBean bean) {
+  /**
+   * Return the Id property of the target entity type.
+   * <p>
+   * This will return null for multiple Id properties.
+   * </p>
+   */
+  public String getTargetIdProperty() {
+    return targetIdProperty;
+  }
 
-		BeanDescriptor<?> targetDesc = getTargetDescriptor();
-		BeanProperty idProp = targetDesc.getIdProperty();
-		if (idProp != null) {
-			Object value = idProp.getValue(bean);
-			if (value == null) {
-				return false;
-			}
-		}
-		// all the unique properties are non-null
-		return true;
-	}
+  /**
+   * Return the BeanDescriptor of the target.
+   */
+  public BeanDescriptor<T> getTargetDescriptor() {
+    return targetDescriptor;
+  }
 
-	/**
-	 * Return the type of the target.
-	 * <p>
-	 * This is the class of the associated bean, or beans contained in a list,
-	 * set or map.
-	 * </p>
-	 */
-	public Class<?> getTargetType() {
-		return targetType;
-	}
+  public boolean isSaveRecurseSkippable(Object bean) {
+    if (!saveRecurseSkippable) {
+      // we have to saveRecurse even if the bean is not dirty
+      // as this bean has cascade save on some of its properties
+      return false;
+    }
+    if (bean instanceof EntityBean) {
+      return !((EntityBean) bean)._ebean_getIntercept().isNewOrDirty();
+    } else {
+      // we don't know so we say no
+      return false;
+    }
+  }
 
-	/**
-	 * Return an extra clause to add to the query for loading or joining
-	 * to this bean type.
-	 */
-	public String getExtraWhere() {
-		return extraWhere;
-	}
+  /**
+   * Return true if save can be skipped for unmodified bean(s) of this
+   * property.
+   * <p>
+   * That is, if a bean of this property is unmodified we don't need to
+   * saveRecurse because none of its associated beans have cascade save set to
+   * true.
+   * </p>
+   */
+  public boolean isSaveRecurseSkippable() {
+    return saveRecurseSkippable;
+  }
 
-	/**
-	 * Return if this association should use an Outer join.
-	 */
-	public boolean isOuterJoin() {
-		return isOuterJoin;
-	}
+  /**
+   * Similar to isSaveRecurseSkippable but in terms of delete.
+   */
+  public boolean isDeleteRecurseSkippable() {
+    return deleteRecurseSkippable;
+  }
 
-	/**
-	 * Return true if this association is updateable.
-	 */
-	public boolean isUpdateable() {
-		if (tableJoin.columns().length > 0) {
-			return tableJoin.columns()[0].isUpdateable();
-		}
+  /**
+   * Return true if the unique id properties are all not null for this bean.
+   */
+  public boolean hasId(EntityBean bean) {
 
-		return true;
-	}
+    BeanDescriptor<?> targetDesc = getTargetDescriptor();
+    BeanProperty idProp = targetDesc.getIdProperty();
+    if (idProp != null) {
+      Object value = idProp.getValue(bean);
+      if (value == null) {
+        return false;
+      }
+    }
+    // all the unique properties are non-null
+    return true;
+  }
 
-	/**
-	 * Return true if this association is insertable.
-	 */
-	public boolean isInsertable() {
-		if (tableJoin.columns().length > 0) {
-			return tableJoin.columns()[0].isInsertable();
-		}
+  /**
+   * Return the type of the target.
+   * <p>
+   * This is the class of the associated bean, or beans contained in a list,
+   * set or map.
+   * </p>
+   */
+  public Class<?> getTargetType() {
+    return targetType;
+  }
 
-		return true;
-	}
+  /**
+   * Return an extra clause to add to the query for loading or joining
+   * to this bean type.
+   */
+  public String getExtraWhere() {
+    return extraWhere;
+  }
 
-	/**
-	 * return the join to use for the bean.
-	 */
-	public TableJoin getTableJoin() {
-		return tableJoin;
-	}
+  /**
+   * Return if this association should use an Outer join.
+   */
+  public boolean isOuterJoin() {
+    return isOuterJoin;
+  }
 
-	/**
-	 * Return the BeanTable for this association.
-	 * <p>
-	 * This has the table name which is used to determine the relationship for
-	 * this association.
-	 * </p>
-	 */
-	public BeanTable getBeanTable() {
-		return beanTable;
-	}
+  /**
+   * Return true if this association is updateable.
+   */
+  public boolean isUpdateable() {
+    if (tableJoin.columns().length > 0) {
+      return tableJoin.columns()[0].isUpdateable();
+    }
+    return true;
+  }
 
-	/**
-	 * Get the persist info.
-	 */
-	public BeanCascadeInfo getCascadeInfo() {
-		return cascadeInfo;
-	}
+  /**
+   * Return true if this association is insertable.
+   */
+  public boolean isInsertable() {
+    if (tableJoin.columns().length > 0) {
+      return tableJoin.columns()[0].isInsertable();
+    }
+    return true;
+  }
 
-	/**
-	 * Build the list of imported property. Matches BeanProperty from the target
-	 * descriptor back to local database columns in the TableJoin.
-	 */
-	protected ImportedId createImportedId(BeanPropertyAssoc<?> owner, BeanDescriptor<?> target, TableJoin join) {
+  /**
+   * return the join to use for the bean.
+   */
+  public TableJoin getTableJoin() {
+    return tableJoin;
+  }
 
-		BeanProperty idProp = target.getIdProperty();
-		BeanProperty[] others = target.propertiesBaseScalar();
+  /**
+   * Return the BeanTable for this association.
+   * <p>
+   * This has the table name which is used to determine the relationship for
+   * this association.
+   * </p>
+   */
+  public BeanTable getBeanTable() {
+    return beanTable;
+  }
 
-		if (descriptor.isSqlSelectBased()){
-			String dbColumn = owner.getDbColumn();
-			return new ImportedIdSimple(owner, dbColumn, idProp, 0);
-		}
+  /**
+   * Get the persist info.
+   */
+  public BeanCascadeInfo getCascadeInfo() {
+    return cascadeInfo;
+  }
 
-		TableJoinColumn[] cols = join.columns();
+  /**
+   * Return the elastic search doc for this embedded property.
+   */
+  public String getElasticDoc() {
+    return elasticDoc;
+  }
 
-		if (idProp == null) {
-		  return null;
-		}
-		if (!idProp.isEmbedded()) {
-			// simple single scalar id
-			if (cols.length != 1){
-				String msg = "No Imported Id column for ["+idProp+"] in table ["+join.getTable()+"]";
-				logger.error(msg);
-				return null;
-			} else {
-			  BeanProperty[] idProps = {idProp};
-				return createImportedScalar(owner, cols[0], idProps, others);
-			}
-		} else {
-			// embedded id
-			BeanPropertyAssocOne<?> embProp = (BeanPropertyAssocOne<?>)idProp;
-			BeanProperty[] embBaseProps = embProp.getTargetDescriptor().propertiesBaseScalar();
-			ImportedIdSimple[] scalars = createImportedList(owner, cols, embBaseProps, others);
+  /**
+   * Return if this elastic search property should be 'flattened'.
+   */
+  public boolean isElasticFlatten() {
+    return elasticFlatten;
+  }
 
-			return new ImportedIdEmbedded(owner, embProp, scalars);
-		}
-	}
+  /**
+   * Build the list of imported property. Matches BeanProperty from the target
+   * descriptor back to local database columns in the TableJoin.
+   */
+  protected ImportedId createImportedId(BeanPropertyAssoc<?> owner, BeanDescriptor<?> target, TableJoin join) {
 
-	private ImportedIdSimple[] createImportedList(BeanPropertyAssoc<?> owner, TableJoinColumn[] cols, BeanProperty[] props, BeanProperty[] others) {
+    BeanProperty idProp = target.getIdProperty();
+    BeanProperty[] others = target.propertiesBaseScalar();
 
-		ArrayList<ImportedIdSimple> list = new ArrayList<ImportedIdSimple>();
+    if (descriptor.isSqlSelectBased()) {
+      String dbColumn = owner.getDbColumn();
+      return new ImportedIdSimple(owner, dbColumn, idProp, 0);
+    }
 
-		for (int i = 0; i < cols.length; i++) {
-			list.add(createImportedScalar(owner, cols[i], props, others));
-		}
-		
-		return ImportedIdSimple.sort(list);
-	}
+    TableJoinColumn[] cols = join.columns();
 
-	private ImportedIdSimple createImportedScalar(BeanPropertyAssoc<?> owner, TableJoinColumn col, BeanProperty[] props, BeanProperty[] others) {
+    if (idProp == null) {
+      return null;
+    }
+    if (!idProp.isEmbedded()) {
+      // simple single scalar id
+      if (cols.length != 1) {
+        String msg = "No Imported Id column for [" + idProp + "] in table [" + join.getTable() + "]";
+        logger.error(msg);
+        return null;
+      } else {
+        BeanProperty[] idProps = {idProp};
+        return createImportedScalar(owner, cols[0], idProps, others);
+      }
+    } else {
+      // embedded id
+      BeanPropertyAssocOne<?> embProp = (BeanPropertyAssocOne<?>) idProp;
+      BeanProperty[] embBaseProps = embProp.getTargetDescriptor().propertiesBaseScalar();
+      ImportedIdSimple[] scalars = createImportedList(owner, cols, embBaseProps, others);
 
-		String matchColumn = col.getForeignDbColumn();
-		String localColumn = col.getLocalDbColumn();
-		
-		for (int j = 0; j < props.length; j++) {
-			if (props[j].getDbColumn().equalsIgnoreCase(matchColumn)) {
-				return new ImportedIdSimple(owner, localColumn, props[j], j);
-			}
-		}
+      return new ImportedIdEmbedded(owner, embProp, scalars);
+    }
+  }
 
-		for (int j = 0; j < others.length; j++) {
-            if (others[j].getDbColumn().equalsIgnoreCase(matchColumn)) {
-                return new ImportedIdSimple(owner, localColumn, others[j], j+props.length);
-            }
-        }
-		
-		String msg = "Error with the Join on ["+getFullBeanName()
-			+"]. Could not find the local match for ["+matchColumn+"] "//in table["+searchTable+"]?"
-			+" Perhaps an error in a @JoinColumn";
-		throw new PersistenceException(msg);
-	}
+  private ImportedIdSimple[] createImportedList(BeanPropertyAssoc<?> owner, TableJoinColumn[] cols, BeanProperty[] props, BeanProperty[] others) {
+
+    ArrayList<ImportedIdSimple> list = new ArrayList<ImportedIdSimple>();
+
+    for (int i = 0; i < cols.length; i++) {
+      list.add(createImportedScalar(owner, cols[i], props, others));
+    }
+
+    return ImportedIdSimple.sort(list);
+  }
+
+  private ImportedIdSimple createImportedScalar(BeanPropertyAssoc<?> owner, TableJoinColumn col, BeanProperty[] props, BeanProperty[] others) {
+
+    String matchColumn = col.getForeignDbColumn();
+    String localColumn = col.getLocalDbColumn();
+
+    for (int j = 0; j < props.length; j++) {
+      if (props[j].getDbColumn().equalsIgnoreCase(matchColumn)) {
+        return new ImportedIdSimple(owner, localColumn, props[j], j);
+      }
+    }
+
+    for (int j = 0; j < others.length; j++) {
+      if (others[j].getDbColumn().equalsIgnoreCase(matchColumn)) {
+        return new ImportedIdSimple(owner, localColumn, others[j], j + props.length);
+      }
+    }
+
+    String msg = "Error with the Join on [" + getFullBeanName()
+        + "]. Could not find the local match for [" + matchColumn + "] "//in table["+searchTable+"]?"
+        + " Perhaps an error in a @JoinColumn";
+    throw new PersistenceException(msg);
+  }
 }

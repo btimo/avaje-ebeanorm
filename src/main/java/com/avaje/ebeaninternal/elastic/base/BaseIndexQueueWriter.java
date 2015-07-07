@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Base implementation of IndexQueueWriter that inserts the events into a database table.
  */
-public class BaseIndexQueueWriterWriter implements IndexQueueWriter {
+public class BaseIndexQueueWriter implements IndexQueueWriter {
 
   public static final int ACTION_INDEX = 1;
 
@@ -26,7 +26,7 @@ public class BaseIndexQueueWriterWriter implements IndexQueueWriter {
 
   final String sql;
 
-  public BaseIndexQueueWriterWriter(EbeanServer server, String tableName) {
+  public BaseIndexQueueWriter(EbeanServer server, String tableName) {
     this.server = server;
     this.sql = createSql(tableName);
   }

@@ -163,6 +163,9 @@ public class DeployBeanDescriptor<T> {
     return Modifier.isAbstract(beanType.getModifiers());
   }
 
+  /**
+   * Read the top level ElasticIndex deployment information.
+   */
   public void readElasticIndex(ElasticIndex elasticIndex) {
 
     elasticType = BeanElasticType.INDEX;

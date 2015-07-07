@@ -7,7 +7,7 @@ import com.avaje.ebeaninternal.elastic.IndexMessageSender;
 import com.avaje.ebeaninternal.elastic.IndexQueueWriter;
 import com.avaje.ebeaninternal.elastic.IndexUpdateProcessor;
 import com.avaje.ebeaninternal.elastic.base.BaseHttpMessageSender;
-import com.avaje.ebeaninternal.elastic.base.BaseIndexQueueWriterWriter;
+import com.avaje.ebeaninternal.elastic.base.BaseIndexQueueWriter;
 import com.avaje.ebeaninternal.elastic.base.BaseIndexUpdateProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -235,7 +235,7 @@ public class InternalConfiguration {
 
     ElasticConfig elasticConfig = serverConfig.getElasticConfig();
     JsonFactory jsonFactory = new JsonFactory();
-    IndexQueueWriter indexQueueWriter = new BaseIndexQueueWriterWriter(server, "eb_elastic_queue");
+    IndexQueueWriter indexQueueWriter = new BaseIndexQueueWriter(server, "eb_elastic_queue");
     IndexMessageSender messageSender = new BaseHttpMessageSender(elasticConfig.getUrl());
     return new BaseIndexUpdateProcessor(indexQueueWriter, jsonFactory, messageSender, elasticConfig.getBulkBatchSize());
   }

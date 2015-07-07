@@ -3,6 +3,7 @@ package com.avaje.ebeaninternal.server.deploy;
 import com.avaje.ebean.PersistenceIOException;
 import com.avaje.ebean.Query;
 import com.avaje.ebean.QueryEachConsumer;
+import com.avaje.ebean.annotation.ElasticIndex;
 import com.avaje.ebean.annotation.IndexEvent;
 import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.text.PathProperties;
@@ -20,35 +21,66 @@ import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
 
-
+/**
+ * Helper for BeanDescriptor to handle the ElasticSearch features.
+ */
 public class BeanDescriptorElasticHelp<T> {
 
   final SpiEbeanServer server;
 
+  /**
+   * The associated BeanDescriptor.
+   */
   final BeanDescriptor<T> desc;
 
+  /**
+   * The type of index.
+   */
   final BeanElasticType elasticType;
 
+  /**
+   * Nested path properties defining the doc structure for indexing.
+   */
   final PathProperties pathProperties;
 
+  /**
+   * Identifier used in the queue system to identify the index.
+   */
   final String queueId;
 
+  /**
+   * ElasticSearch index type.
+   */
   final String indexType;
 
+  /**
+   * ElasticSearch index name.
+   */
   final String indexName;
 
+  /**
+   * Behavior on insert.
+   */
   final IndexEvent insert;
+
+  /**
+   * Behavior on update.
+   */
   final IndexEvent update;
+
+  /**
+   * Behavior on delete.
+   */
   final IndexEvent delete;
 
-  private final BeanProperty versionProperty;
+  //private final BeanProperty versionProperty;
 
   BeanDescriptorElasticHelp(BeanDescriptor<T> desc, DeployBeanDescriptor<T> deploy) {
 
     this.desc = desc;
-    this.pathProperties = derivePathProperties(deploy.getElasticPathProperties());
     this.server = desc.getEbeanServer();
     this.elasticType = deploy.getElasticType();
+    this.pathProperties = derivePathProperties(deploy);
     this.queueId = derive(desc, deploy.getElasticQueueId());
     this.indexName = derive(desc, deploy.getElasticIndexName());
     this.indexType = derive(desc, deploy.getElasticIndexType());
@@ -57,30 +89,45 @@ public class BeanDescriptorElasticHelp<T> {
     this.update = deploy.getElasticUpdateEvent();
     this.delete = deploy.getElasticDeleteEvent();
 
-    this.versionProperty = desc.getVersionProperty();
+    //this.versionProperty = desc.getVersionProperty();
   }
 
   /**
    * Return the pathProperties which defines the JSON document to index.
    * This can add derived/embedded/nested parts to the document.
    */
-  private PathProperties derivePathProperties(PathProperties deployPathProperties) {
+  private PathProperties derivePathProperties(DeployBeanDescriptor<T> deploy) {
 
-    if (deployPathProperties != null) return deployPathProperties;
+    if (!BeanElasticType.INDEX.equals(deploy.getElasticType())) {
+      return null;
+    }
 
-    // determine from annotations on the properties
-    PathProperties prop = new PathProperties();
+    PathProperties pathProps = deploy.getElasticPathProperties();
+    boolean topLevel = (pathProps != null);
+    if (!topLevel) {
+      // not defined so derive
+      pathProps = new PathProperties();
+    }
 
-    //TODO: change to check annotations / Nested etc
     BeanProperty[] properties = desc.propertiesNonTransient();
 
     for (int i = 0; i < properties.length; i++) {
-      if (!(properties[i] instanceof BeanPropertyAssocMany)) {
-        prop.addToPath(null, properties[i].getName());
+      if (topLevel) {
+        // check property annotations
+        if (properties[i] instanceof BeanPropertyAssoc) {
+          String embeddedDoc = ((BeanPropertyAssoc)properties[i]).getElasticDoc();
+          if (embeddedDoc != null) {
+            // embedded doc specified on the property
+            pathProps.addToPath(properties[i].getName(), embeddedDoc);
+          }
+        }
+      } else if (!(properties[i] instanceof BeanPropertyAssocMany)) {
+        // by default add all non many properties
+        pathProps.addToPath(null, properties[i].getName());
       }
     }
 
-    return prop;
+    return pathProps;
   }
 
   public T indexGet(Object id) throws PersistenceIOException {

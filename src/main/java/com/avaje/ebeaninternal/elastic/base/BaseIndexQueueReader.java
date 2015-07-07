@@ -160,7 +160,7 @@ public class BaseIndexQueueReader {
   protected String getMarkProcessingSql() {
 
     return "update "+queueTableName
-        +" set processing = "+BaseIndexQueueWriterWriter.PROCESSING_TRUE
+        +" set processing = "+ BaseIndexQueueWriter.PROCESSING_TRUE
         +" where id = ?";
   }
 
@@ -168,7 +168,7 @@ public class BaseIndexQueueReader {
 
     return "select id, queue_id, doc_id, action, processing, when_queued from "
         + queueTableName
-        + " where processing = "+BaseIndexQueueWriterWriter.PROCESSING_FALSE
+        + " where processing = "+ BaseIndexQueueWriter.PROCESSING_FALSE
         +" order by id";
 
 

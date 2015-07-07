@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.deploy.meta;
 
+import com.avaje.ebean.annotation.ElasticEmbedded;
 import com.avaje.ebeaninternal.server.deploy.BeanCascadeInfo;
 import com.avaje.ebeaninternal.server.deploy.BeanTable;
 
@@ -42,7 +43,11 @@ public abstract class DeployBeanPropertyAssoc<T> extends DeployBeanProperty {
 	 * From the deployment mappedBy attribute.
 	 */
 	String mappedBy;
-	
+
+	String elasticDoc;
+
+	boolean elasticFlatten;
+
 	/**
 	 * Construct the property.
 	 */
@@ -153,4 +158,20 @@ public abstract class DeployBeanPropertyAssoc<T> extends DeployBeanProperty {
 			this.mappedBy = mappedBy;
 		}
 	}
+
+	/**
+	 * Set ElasticEmbedded deployment information.
+	 */
+	public void setElasticEmbedded(ElasticEmbedded elasticEmbedded) {
+		elasticDoc = elasticEmbedded.doc();
+		elasticFlatten = elasticEmbedded.flatten();
+	}
+
+  public String getElasticDoc() {
+    return elasticDoc;
+  }
+
+  public boolean isElasticFlatten() {
+    return elasticFlatten;
+  }
 }
