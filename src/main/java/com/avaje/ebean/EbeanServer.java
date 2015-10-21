@@ -1819,4 +1819,9 @@ public interface EbeanServer {
    */
   JsonContext json();
 
+  /**
+   * Return the Document store.
+   */
+  DocumentStore docStore();
+
 }

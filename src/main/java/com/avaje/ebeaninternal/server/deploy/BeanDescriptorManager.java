@@ -110,6 +110,8 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private final BeanManagerFactory beanManagerFactory;
 
+  private final ServerConfig serverConfig;
+
   private final ChangeLogListener changeLogListener;
 
   private final ChangeLogRegister changeLogRegister;
@@ -172,8 +174,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
    */
   public BeanDescriptorManager(InternalConfiguration config) {
 
-    ServerConfig serverConfig = config.getServerConfig();
-
+    this.serverConfig = config.getServerConfig();
     this.serverName = InternString.intern(serverConfig.getName());
     this.cacheManager = config.getCacheManager();
     this.xmlConfig = config.getXmlConfig();
@@ -1019,7 +1020,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
    */
   private <T> DeployBeanInfo<T> createDeployBeanInfo(Class<T> beanClass) {
 
-    DeployBeanDescriptor<T> desc = new DeployBeanDescriptor<T>(beanClass);
+    DeployBeanDescriptor<T> desc = new DeployBeanDescriptor<T>(beanClass, serverConfig);
 
     desc.setUpdateChangesOnly(updateChangesOnly);
 

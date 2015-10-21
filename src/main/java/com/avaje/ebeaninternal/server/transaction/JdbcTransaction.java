@@ -1,6 +1,7 @@
 package com.avaje.ebeaninternal.server.transaction;
 
 import com.avaje.ebean.TransactionCallback;
+import com.avaje.ebean.annotation.DocStoreEvent;
 import com.avaje.ebean.bean.PersistenceContext;
 import com.avaje.ebean.config.PersistBatch;
 import com.avaje.ebean.config.dbplatform.DatabasePlatform.OnQueryOnly;
@@ -143,6 +144,14 @@ public class JdbcTransaction implements SpiTransaction {
   protected TChangeLogHolder changeLogHolder;
 
   /**
+   * The mode for updating ElasticSearch indexes for this transaction.
+   * Only set when you want to override the default behavior.
+   */
+  protected DocStoreEvent indexUpdateMode;
+
+  protected int indexBulkBatchSize;
+
+  /**
    * Create a new JdbcTransaction.
    */
   public JdbcTransaction(String id, boolean explicit, Connection connection, TransactionManager manager) {
@@ -270,6 +279,25 @@ public class JdbcTransaction implements SpiTransaction {
     if (changeLogHolder != null) {
       changeLogHolder.postCommit();
     }
+  }
+
+  @Override
+  public int getDocStoreBulkBatchSize() {
+    return indexBulkBatchSize;
+  }
+
+  @Override
+  public void setDocStoreUpdateBatchSize(int indexBulkBatchSize) {
+    this.indexBulkBatchSize = indexBulkBatchSize;
+  }
+
+  public DocStoreEvent getDocStoreUpdateMode() {
+    return indexUpdateMode;
+  }
+
+  @Override
+  public void setDocStoreUpdateMode(DocStoreEvent indexUpdateMode) {
+    this.indexUpdateMode = indexUpdateMode;
   }
 
   @Override

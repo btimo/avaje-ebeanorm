@@ -1,10 +1,17 @@
 package com.avaje.ebean.plugin;
 
+import com.avaje.ebean.Query;
 import com.avaje.ebean.config.dbplatform.IdType;
 import com.avaje.ebean.event.BeanFindController;
 import com.avaje.ebean.event.BeanPersistController;
 import com.avaje.ebean.event.BeanPersistListener;
 import com.avaje.ebean.event.BeanQueryAdapter;
+import com.avaje.ebean.text.json.JsonReadOptions;
+import com.avaje.ebeaninternal.server.text.json.ReadJson;
+import com.avaje.ebeanservice.api.BulkElasticUpdate;
+import com.fasterxml.jackson.core.JsonParser;
+
+import java.io.IOException;
 
 /**
  * Information and methods on BeanDescriptors made available to plugins.
@@ -56,4 +63,21 @@ public interface SpiBeanType<T> {
    */
   String getSequenceName();
 
+  /**
+   * Apply the appropriate fetch (PathProperties) to the query such that the query returns beans matching
+   * the document store structure with the expected embedded properties.
+   */
+  void docStoreApplyPath(Query<T> spiQuery);
+
+  /**
+   * Store the bean in the elasticSearch index (assuming the bean is fetched with appropriate path properties
+   * to match the expected document structure).
+   */
+  void elasticIndex(Object idValue, T bean, BulkElasticUpdate bulkElasticUpdate) throws IOException;
+
+  String getElasticIndexType();
+
+  String getElasticIndexName();
+
+  T jsonRead(JsonParser parser, JsonReadOptions readOptions, Object objectMapper) throws IOException;
 }

@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.core;
 
+import com.avaje.ebean.DocumentStore;
 import com.avaje.ebean.ExpressionFactory;
 import com.avaje.ebean.cache.ServerCacheManager;
 import com.avaje.ebean.config.ExternalTransactionManager;
@@ -11,6 +12,7 @@ import com.avaje.ebean.event.changelog.ChangeLogPrepare;
 import com.avaje.ebean.event.changelog.ChangeLogRegister;
 import com.avaje.ebean.event.readaudit.ReadAuditLogger;
 import com.avaje.ebean.event.readaudit.ReadAuditPrepare;
+import com.avaje.ebean.plugin.SpiServer;
 import com.avaje.ebean.plugin.SpiServerPlugin;
 import com.avaje.ebean.text.json.JsonContext;
 import com.avaje.ebeaninternal.api.SpiBackgroundExecutor;
@@ -46,6 +48,9 @@ import com.avaje.ebeaninternal.server.transaction.TransactionManager;
 import com.avaje.ebeaninternal.server.transaction.TransactionScopeManager;
 import com.avaje.ebeaninternal.server.type.DefaultTypeManager;
 import com.avaje.ebeaninternal.server.type.TypeManager;
+import com.avaje.ebeanservice.api.DocStoreFactory;
+import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
+import com.avaje.ebeanservice.elastic.ElasticDocStoreFactory;
 import com.fasterxml.jackson.core.JsonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,10 +86,6 @@ public class InternalConfiguration {
 
   private final BeanDescriptorManager beanDescriptorManager;
 
-  private final TransactionManager transactionManager;
-
-  private final TransactionScopeManager transactionScopeManager;
-
   private final CQueryEngine cQueryEngine;
 
   private final ClusterManager clusterManager;
@@ -98,6 +99,8 @@ public class InternalConfiguration {
   private final XmlConfig xmlConfig;
 
   private final JsonFactory jsonFactory;
+
+  private DocStoreFactory docStoreFactory = new ElasticDocStoreFactory();
 
   /**
    * List of plugins (that ultimately the DefaultServer configures late in construction).
@@ -128,25 +131,10 @@ public class InternalConfiguration {
     this.beanDescriptorManager = new BeanDescriptorManager(this);
     Map<String, String> asOfTableMapping = beanDescriptorManager.deploy();
 
-    this.transactionManager = createTransactionManager();
-
     DatabasePlatform databasePlatform = serverConfig.getDatabasePlatform();
 
     this.binder = getBinder(typeManager, databasePlatform);
     this.cQueryEngine = new CQueryEngine(databasePlatform, binder, asOfTableMapping, serverConfig.getAsOfSysPeriod());
-
-    ExternalTransactionManager externalTransactionManager = serverConfig.getExternalTransactionManager();
-    if (externalTransactionManager == null && serverConfig.isUseJtaTransactionManager()) {
-      externalTransactionManager = new JtaTransactionManager();
-    }
-    if (externalTransactionManager != null) {
-      externalTransactionManager.setTransactionManager(transactionManager);
-      this.transactionScopeManager = new ExternalTransactionScopeManager(transactionManager, externalTransactionManager);
-      logger.info("Using Transaction Manager [" + externalTransactionManager.getClass() + "]");
-    } else {
-      this.transactionScopeManager = new DefaultTransactionScopeManager(transactionManager);
-    }
-
   }
 
   /**
@@ -234,34 +222,6 @@ public class InternalConfiguration {
     return new NotSupportedJsonExpression();
   }
 
-  /**
-   * Create the TransactionManager taking into account autoCommit mode.
-   */
-  private TransactionManager createTransactionManager() {
-
-    if (serverConfig.isExplicitTransactionBeginMode()) {
-      return new ExplicitTransactionManager(clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
-    }
-
-    if (isAutoCommitMode()) {
-      return new AutoCommitTransactionManager(clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
-    }
-
-    return new TransactionManager(clusterManager, backgroundExecutor, serverConfig, beanDescriptorManager, this.getBootupClasses());
-  }
-
-  /**
-   * Return true if autoCommit mode is on.
-   */
-  private boolean isAutoCommitMode() {
-    if (serverConfig.isAutoCommitMode()) {
-      // explicitly set
-      return true;
-    }
-    DataSource dataSource = serverConfig.getDataSource();
-    return dataSource instanceof DataSourcePool && ((DataSourcePool) dataSource).getAutoCommit();
-  }
-
   public JsonContext createJsonContext(SpiEbeanServer server) {
 
     return new DJsonContext(server, jsonFactory, typeManager);
@@ -307,10 +267,6 @@ public class InternalConfiguration {
     return expressionFactory;
   }
 
-  public TypeManager getTypeManager() {
-    return typeManager;
-  }
-
   public Binder getBinder() {
     return binder;
   }
@@ -335,14 +291,6 @@ public class InternalConfiguration {
     return deployUtil;
   }
 
-  public TransactionManager getTransactionManager() {
-    return transactionManager;
-  }
-
-  public TransactionScopeManager getTransactionScopeManager() {
-    return transactionScopeManager;
-  }
-
   public CQueryEngine getCQueryEngine() {
     return cQueryEngine;
   }
@@ -357,5 +305,65 @@ public class InternalConfiguration {
 
   public GeneratedPropertyFactory getGeneratedPropertyFactory() {
     return new GeneratedPropertyFactory(serverConfig.getCurrentUserProvider());
+  }
+
+  /**
+   * Create the DocStoreUpdateProcessor for the given server.
+   */
+  public DocStoreUpdateProcessor createDocStoreUpdateProcessor(SpiServer server) {
+    return docStoreFactory.createUpdateProcessor(server);
+  }
+
+  /**
+   * Create the DocumentStore given the server and update processor.
+   */
+  public DocumentStore createDocumentStore(SpiServer server, DocStoreUpdateProcessor updateProcessor) {
+    return docStoreFactory.createDocumentStore(server, updateProcessor);
+  }
+
+  /**
+   * Create the TransactionManager taking into account autoCommit mode.
+   */
+  public TransactionManager createTransactionManager(DocStoreUpdateProcessor indexUpdateProcessor) {
+
+    if (serverConfig.isExplicitTransactionBeginMode()) {
+      return new ExplicitTransactionManager(serverConfig, clusterManager, backgroundExecutor, indexUpdateProcessor, beanDescriptorManager, this.getBootupClasses());
+    }
+
+    if (isAutoCommitMode()) {
+      return new AutoCommitTransactionManager(serverConfig, clusterManager, backgroundExecutor, indexUpdateProcessor, beanDescriptorManager, this.getBootupClasses());
+    }
+
+    return new TransactionManager(serverConfig, clusterManager, backgroundExecutor, indexUpdateProcessor, beanDescriptorManager, this.getBootupClasses());
+  }
+
+  /**
+   * Return true if autoCommit mode is on.
+   */
+  private boolean isAutoCommitMode() {
+    if (serverConfig.isAutoCommitMode()) {
+      // explicitly set
+      return true;
+    }
+    DataSource dataSource = serverConfig.getDataSource();
+    return dataSource instanceof DataSourcePool && ((DataSourcePool) dataSource).getAutoCommit();
+  }
+
+  /**
+   * Create the TransactionScopeManager taking into account JTA or external transaction manager.
+   */
+  public TransactionScopeManager createTransactionScopeManager(TransactionManager transactionManager) {
+
+    ExternalTransactionManager externalTransactionManager = serverConfig.getExternalTransactionManager();
+    if (externalTransactionManager == null && serverConfig.isUseJtaTransactionManager()) {
+      externalTransactionManager = new JtaTransactionManager();
+    }
+    if (externalTransactionManager != null) {
+      externalTransactionManager.setTransactionManager(transactionManager);
+      logger.info("Using Transaction Manager [" + externalTransactionManager.getClass() + "]");
+      return new ExternalTransactionScopeManager(transactionManager, externalTransactionManager);
+    } else {
+      return new DefaultTransactionScopeManager(transactionManager);
+    }
   }
 }

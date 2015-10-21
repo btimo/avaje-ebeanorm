@@ -9,6 +9,7 @@ import javax.persistence.UniqueConstraint;
 
 import com.avaje.ebean.annotation.CacheStrategy;
 import com.avaje.ebean.annotation.CacheTuning;
+import com.avaje.ebean.annotation.DocStore;
 import com.avaje.ebean.annotation.EntityConcurrencyMode;
 import com.avaje.ebean.annotation.History;
 import com.avaje.ebean.annotation.Index;
@@ -106,6 +107,11 @@ public class AnnotationClass extends AnnotationParser {
     History history = cls.getAnnotation(History.class);
     if (history != null) {
       descriptor.setHistorySupport();
+    }
+
+    DocStore elasticIndex = cls.getAnnotation(DocStore.class);
+    if (elasticIndex != null) {
+      descriptor.readElasticIndex(elasticIndex);
     }
 
     UpdateMode updateMode = cls.getAnnotation(UpdateMode.class);
