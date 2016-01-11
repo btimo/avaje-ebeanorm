@@ -46,12 +46,36 @@ public class BeanDescriptorJsonHelp<T> {
 
   protected void jsonWriteProperties(WriteJson writeJson, EntityBean bean) throws IOException {
 
-    
     WriteBean writeBean = writeJson.createWriteBean(desc, bean);
     writeBean.write(writeJson);
   }
-  
-  
+
+  public void jsonWriteDirty(WriteJson writeJson, EntityBean bean, boolean[] dirtyProps) throws IOException {
+
+    if (inheritInfo == null) {
+      jsonWriteDirtyProperties(writeJson, bean, dirtyProps);
+
+    } else {
+      InheritInfo localInheritInfo = inheritInfo.readType(bean.getClass());
+      BeanDescriptor<?> localDescriptor = localInheritInfo.getBeanDescriptor();
+      localDescriptor.jsonWriteDirtyProperties(writeJson, bean, dirtyProps);
+    }
+
+  }
+
+  protected void jsonWriteDirtyProperties(WriteJson writeJson, EntityBean bean, boolean[] dirtyProps) throws IOException {
+
+    writeJson.writeStartObject(null);
+    // render the dirty properties
+    BeanProperty[] props = desc.propertiesNonTransient();
+    for (int j = 0; j < props.length; j++) {
+      if (dirtyProps[props[j].getPropertyIndex()]) {
+        props[j].jsonWrite(writeJson, bean);
+      }
+    }
+    writeJson.writeEndObject();
+  }
+
   @SuppressWarnings("unchecked")
   public T jsonRead(ReadJson jsonRead, String path) throws IOException {
 

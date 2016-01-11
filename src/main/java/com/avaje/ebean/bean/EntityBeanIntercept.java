@@ -475,7 +475,7 @@ public final class EntityBeanIntercept implements Serializable {
   public void setLoadedProperty(int propertyIndex) {
     loadedProps[propertyIndex] = true;
   }
-  
+
   /**
    * Return true if the property is loaded.
    */
@@ -564,6 +564,23 @@ public final class EntityBeanIntercept implements Serializable {
       }
     }
     return props;
+  }
+
+  /**
+   * Return the array of flags indicating the dirty properties.
+   */
+  public boolean[] getDirtyProperties() {
+    int len = getPropertyLength();
+    boolean[] dirties = new boolean[len];
+    for (int i = 0; i < len; i++) {
+      if (changedProps != null && changedProps[i]) {
+        dirties[i] = true;
+      } else if (embeddedDirty != null && embeddedDirty[i]) {
+        // an embedded property has been changed - recurse
+        dirties[i] = true;
+      }
+    }
+    return dirties;
   }
 
   /**

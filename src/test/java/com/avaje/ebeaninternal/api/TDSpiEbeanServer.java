@@ -15,6 +15,7 @@ import com.avaje.ebean.meta.MetaInfoManager;
 import com.avaje.ebean.plugin.SpiServer;
 import com.avaje.ebean.text.csv.CsvReader;
 import com.avaje.ebean.text.json.JsonContext;
+import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
 import com.avaje.ebeaninternal.server.core.SpiOrmQueryRequest;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.query.CQuery;
@@ -79,6 +80,11 @@ public class TDSpiEbeanServer implements SpiEbeanServer {
 
   @Override
   public PersistenceContextScope getPersistenceContextScope(SpiQuery<?> query) {
+    return null;
+  }
+
+  @Override
+  public DocumentStore docStore() {
     return null;
   }
 
