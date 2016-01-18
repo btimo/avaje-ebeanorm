@@ -1,6 +1,5 @@
 package com.avaje.ebeaninternal.server.core;
 
-import com.avaje.ebean.DocumentStore;
 import com.avaje.ebean.ExpressionFactory;
 import com.avaje.ebean.cache.ServerCacheManager;
 import com.avaje.ebean.config.ExternalTransactionManager;
@@ -49,6 +48,7 @@ import com.avaje.ebeaninternal.server.transaction.TransactionScopeManager;
 import com.avaje.ebeaninternal.server.type.DefaultTypeManager;
 import com.avaje.ebeaninternal.server.type.TypeManager;
 import com.avaje.ebeanservice.api.DocStoreFactory;
+import com.avaje.ebeanservice.api.DocStoreIntegration;
 import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
 import com.avaje.ebeanservice.elastic.ElasticDocStoreFactory;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -318,17 +318,10 @@ public class InternalConfiguration {
   }
 
   /**
-   * Create the DocStoreUpdateProcessor for the given server.
+   * Create the DocStoreIntegration components for the given server.
    */
-  public DocStoreUpdateProcessor createDocStoreUpdateProcessor(SpiServer server) {
-    return docStoreFactory.createUpdateProcessor(server);
-  }
-
-  /**
-   * Create the DocumentStore given the server and update processor.
-   */
-  public DocumentStore createDocumentStore(SpiServer server, DocStoreUpdateProcessor updateProcessor) {
-    return docStoreFactory.createDocumentStore(server, updateProcessor);
+  public DocStoreIntegration createDocStoreIntegration(SpiServer server) {
+    return docStoreFactory.create(server);
   }
 
   /**

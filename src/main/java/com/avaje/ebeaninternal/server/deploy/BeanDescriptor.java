@@ -1612,6 +1612,13 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   /**
+   * Set the bean id value converting if necessary.
+   */
+  public void setBeanId(T bean, Object idValue) {
+    idBinder.convertSetId(idValue, (EntityBean) bean);
+  }
+
+  /**
    * Convert and set the id value.
    * <p>
    * If the bean is not null, the id value is set to the id property of the bean

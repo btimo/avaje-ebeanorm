@@ -37,6 +37,7 @@ import com.avaje.ebeaninternal.api.SpiQuery.Type;
 import com.avaje.ebeaninternal.api.SpiSqlQuery;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
+import com.avaje.ebeanservice.api.DocStoreIntegration;
 import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
 import com.avaje.ebeaninternal.server.autotune.AutoTuneService;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
@@ -238,10 +239,10 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     this.beanLoader = new DefaultBeanLoader(this);
     this.jsonContext = config.createJsonContext(this);
 
-    DocStoreUpdateProcessor docStoreUpdateProcessor = config.createDocStoreUpdateProcessor(this);
-    this.transactionManager = config.createTransactionManager(docStoreUpdateProcessor);
+    DocStoreIntegration docStoreComponents = config.createDocStoreIntegration(this);
+    this.transactionManager = config.createTransactionManager(docStoreComponents.updateProcessor());
     this.transactionScopeManager = config.createTransactionScopeManager(transactionManager);
-    this.documentStore = config.createDocumentStore(this, docStoreUpdateProcessor);
+    this.documentStore = docStoreComponents.documentStore();
 
     this.serverPlugins = config.getPlugins();
     this.ddlGenerator = new DdlGenerator(this, serverConfig);

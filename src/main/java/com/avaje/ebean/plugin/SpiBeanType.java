@@ -7,7 +7,6 @@ import com.avaje.ebean.event.BeanPersistController;
 import com.avaje.ebean.event.BeanPersistListener;
 import com.avaje.ebean.event.BeanQueryAdapter;
 import com.avaje.ebean.text.json.JsonReadOptions;
-import com.avaje.ebeaninternal.server.text.json.ReadJson;
 import com.avaje.ebeanservice.api.BulkElasticUpdate;
 import com.fasterxml.jackson.core.JsonParser;
 
@@ -37,6 +36,11 @@ public interface SpiBeanType<T> {
    * Return the id value for the given bean.
    */
   Object getBeanId(T bean);
+
+  /**
+   * Set the id value to the bean.
+   */
+  void setBeanId(T bean, Object idValue);
 
   /**
    * Return the bean persist controller.

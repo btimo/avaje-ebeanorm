@@ -7,15 +7,15 @@ import com.avaje.ebean.QueryEachConsumer;
 import com.avaje.ebean.plugin.SpiBeanType;
 import com.avaje.ebean.plugin.SpiServer;
 import com.avaje.ebeaninternal.api.SpiQuery;
-import com.avaje.ebeaninternal.server.text.json.ReadJson;
 import com.avaje.ebeanservice.api.DocStoreQueryUpdate;
 import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
 
 /**
- * Created by rob on 8/10/15.
+ * ElasticSearch based document store.
  */
 public class ElasticDocumentStore implements DocumentStore {
 
@@ -23,9 +23,15 @@ public class ElasticDocumentStore implements DocumentStore {
 
   private final DocStoreUpdateProcessor updateProcessor;
 
-  public ElasticDocumentStore(SpiServer server, DocStoreUpdateProcessor updateProcessor) {
+  private final IndexMessageSender messageSender;
+
+  private final JsonFactory jsonFactory;
+
+  public ElasticDocumentStore(SpiServer server, DocStoreUpdateProcessor updateProcessor, IndexMessageSender messageSender, JsonFactory jsonFactory) {
     this.server = server;
     this.updateProcessor = updateProcessor;
+    this.messageSender = messageSender;
+    this.jsonFactory = jsonFactory;
   }
 
   @Override
@@ -80,7 +86,10 @@ public class ElasticDocumentStore implements DocumentStore {
 
     try {
       JsonParser parser = getSource(beanDescriptor.getElasticIndexType(), beanDescriptor.getElasticIndexName(), id);
-      return beanDescriptor.jsonRead(parser, null, null);
+      T bean = beanDescriptor.jsonRead(parser, null, null);
+      beanDescriptor.setBeanId(bean, id);
+
+      return bean;
 
     } catch (IOException e) {
       throw new PersistenceIOException(e);
@@ -89,14 +98,13 @@ public class ElasticDocumentStore implements DocumentStore {
 
   private JsonParser getSource(String indexType, String indexName, Object docId) throws IOException {
 
-    return null;
-//    IndexMessageSenderResponse response = messageSender.getDocSource(indexType, indexName, docId.toString());
-//
-//    if (response.getCode() == 200) {
-//      return jsonFactory.createParser(response.getBody());
-//    }
-//
-//    throw new IOException("Response code:"+response.getCode()+" body:"+response.getBody());
+    IndexMessageSenderResponse response = messageSender.getDocSource(indexType, indexName, docId.toString());
+
+    if (response.getCode() == 200) {
+      return jsonFactory.createParser(response.getBody());
+    }
+
+    throw new IOException("Response code:"+response.getCode()+" body:"+response.getBody());
   }
 
 }

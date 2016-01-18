@@ -91,8 +91,8 @@ public class BeanDescriptorElasticHelp<T> {
     }
 
     PathProperties pathProps = deploy.getElasticPathProperties();
-    boolean topLevel = (pathProps != null);
-    if (!topLevel) {
+    boolean topLevelProperties = (pathProps != null);
+    if (pathProps  == null) {
       // not defined so derive
       pathProps = new PathProperties();
     }
@@ -100,13 +100,15 @@ public class BeanDescriptorElasticHelp<T> {
     BeanProperty[] properties = desc.propertiesNonTransient();
 
     for (int i = 0; i < properties.length; i++) {
-      if (topLevel) {
+      if (topLevelProperties) {
         // check property annotations
         if (properties[i] instanceof BeanPropertyAssoc) {
           String embeddedDoc = ((BeanPropertyAssoc)properties[i]).getElasticDoc();
           if (embeddedDoc != null) {
             // embedded doc specified on the property
-            pathProps.addToPath(properties[i].getName(), embeddedDoc);
+            pathProps.add(properties[i].getName(), PathProperties.parse(embeddedDoc));
+            //pathProps.addToPath(, );
+            //pathProps.get(null).add(properties[i].getName());
           }
         }
       } else if (!(properties[i] instanceof BeanPropertyAssocMany)) {

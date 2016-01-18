@@ -1,14 +1,15 @@
 package com.avaje.ebean.text;
 
+import com.avaje.ebean.Query;
+import com.avaje.ebeaninternal.server.query.SplitName;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
-
-import com.avaje.ebean.Query;
+import java.util.Set;
 
 /**
  * This is a Tree like structure of paths and properties that can be used for
@@ -98,12 +99,31 @@ public class PathProperties {
   }
 
   public void addToPath(String path, String property) {
+    getProps(path).getProperties().add(property);
+  }
+
+  public void add(String prefix, PathProperties pathProps) {
+
+    for (Entry<String, Props> entry : pathProps.pathMap.entrySet()) {
+
+      String path = pathAdd(prefix, entry.getKey());
+      String[] split = SplitName.split(path);
+      getProps(split[0]).addProperty(split[1]);
+      getProps(path).addProps(entry.getValue());
+    }
+  }
+
+  private String pathAdd(String prefix, String key) {
+    return key == null ? prefix : prefix + "." + key;
+  }
+
+  Props getProps(String path) {
     Props props = pathMap.get(path);
     if (props == null) {
       props = new Props(this, null, path);
       pathMap.put(path, props);
     }
-    props.getProperties().add(property);
+    return props;
   }
 
   /**
@@ -245,6 +265,10 @@ public class PathProperties {
      */
     protected void addProperty(String property) {
       propSet.add(property.trim());
+    }
+
+    protected void addProps(Props value) {
+      propSet.addAll(value.propSet);
     }
   }
 
