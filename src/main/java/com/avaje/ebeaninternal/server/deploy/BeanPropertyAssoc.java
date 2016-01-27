@@ -34,7 +34,7 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 	IdBinder targetIdBinder;
 
 	InheritInfo targetInheritInfo;
-	
+
 	String targetIdProperty;
 
 	/**
@@ -59,6 +59,10 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 	
 	final String mappedBy;
 
+  final String elasticDoc;
+  
+  final boolean elasticFlatten;
+
 	final String extraWhere;
 
 	boolean saveRecurseSkippable;
@@ -71,6 +75,8 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 		this.extraWhere = InternString.intern(deploy.getExtraWhere());
 		this.beanTable = deploy.getBeanTable();
 		this.mappedBy = InternString.intern(deploy.getMappedBy());
+    this.elasticDoc = deploy.getElasticDoc();
+    this.elasticFlatten = deploy.isElasticFlatten();
 
 		this.tableJoin = new TableJoin(deploy.getTableJoin());
 
@@ -214,6 +220,20 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 	public String getExtraWhere() {
 		return extraWhere;
 	}
+
+  /**
+   * Return the elastic search doc for this embedded property.
+   */
+  public String getElasticDoc() {
+    return elasticDoc;
+  }
+
+  /**
+   * Return if this elastic search property should be 'flattened'.
+   */
+  public boolean isElasticFlatten() {
+    return elasticFlatten;
+  }
 
 	/**
 	 * Return true if this association is updateable.

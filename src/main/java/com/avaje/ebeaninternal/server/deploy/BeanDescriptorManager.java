@@ -111,6 +111,8 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private final BeanManagerFactory beanManagerFactory;
 
+  private final ServerConfig serverConfig;
+
   private final ChangeLogListener changeLogListener;
 
   private final ChangeLogRegister changeLogRegister;
@@ -124,8 +126,6 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
   private final BootupClasses bootupClasses;
 
   private final String serverName;
-
-  private final ServerConfig serverConfig;
 
   private Map<Class<?>, DeployBeanInfo<?>> deplyInfoMap = new HashMap<Class<?>, DeployBeanInfo<?>>();
 
@@ -1050,7 +1050,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
    */
   private <T> DeployBeanInfo<T> createDeployBeanInfo(Class<T> beanClass) {
 
-    DeployBeanDescriptor<T> desc = new DeployBeanDescriptor<T>(beanClass);
+    DeployBeanDescriptor<T> desc = new DeployBeanDescriptor<T>(beanClass, serverConfig);
 
     desc.setUpdateChangesOnly(updateChangesOnly);
 

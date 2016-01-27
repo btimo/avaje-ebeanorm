@@ -23,6 +23,7 @@ import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.XmlType;
 
 import com.avaje.ebean.annotation.ChangeLog;
+import com.avaje.ebean.annotation.DocStore;
 import com.avaje.ebean.annotation.Formula;
 import com.avaje.ebean.annotation.WhenCreated;
 import com.avaje.ebean.annotation.Where;
@@ -30,6 +31,7 @@ import com.avaje.ebean.annotation.Where;
 /**
  * Order entity bean.
  */
+@DocStore
 @ChangeLog
 @Entity
 @Table(name = "o_order")

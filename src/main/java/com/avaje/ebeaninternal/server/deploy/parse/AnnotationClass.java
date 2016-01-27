@@ -11,6 +11,7 @@ import javax.persistence.UniqueConstraint;
 
 import com.avaje.ebean.annotation.CacheStrategy;
 import com.avaje.ebean.annotation.CacheTuning;
+import com.avaje.ebean.annotation.DocStore;
 import com.avaje.ebean.annotation.DbComment;
 import com.avaje.ebean.annotation.Draftable;
 import com.avaje.ebean.annotation.DraftableElement;
@@ -164,6 +165,11 @@ public class AnnotationClass extends AnnotationParser {
     DbComment comment = cls.getAnnotation(DbComment.class);
     if (comment != null) {
       descriptor.setDbComment(comment.value());
+    }
+
+    DocStore elasticIndex = cls.getAnnotation(DocStore.class);
+    if (elasticIndex != null) {
+      descriptor.readElasticIndex(elasticIndex);
     }
 
     UpdateMode updateMode = cls.getAnnotation(UpdateMode.class);
