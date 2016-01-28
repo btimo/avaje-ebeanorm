@@ -9,6 +9,7 @@ import com.avaje.ebean.plugin.SpiServer;
 import com.avaje.ebeaninternal.api.SpiQuery;
 import com.avaje.ebeanservice.api.DocStoreQueryUpdate;
 import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
+import com.avaje.ebeanservice.api.DocumentNotFoundException;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 
@@ -92,17 +93,25 @@ public class ElasticDocumentStore implements DocumentStore {
 
       return bean;
 
+    } catch (DocumentNotFoundException e) {
+      // this is treated like findUnique() so returning null
+      return null;
+
     } catch (IOException e) {
       throw new PersistenceIOException(e);
     }
   }
 
-  private JsonParser getSource(String indexType, String indexName, Object docId) throws IOException {
+  private JsonParser getSource(String indexType, String indexName, Object docId) throws IOException, DocumentNotFoundException {
 
     IndexMessageSenderResponse response = messageSender.getDocSource(indexType, indexName, docId.toString());
 
-    if (response.getCode() == 200) {
-      return jsonFactory.createParser(response.getBody());
+    switch (response.getCode()) {
+      case 404:
+        throw new DocumentNotFoundException("indexType: " + indexType + " indexName:" + indexName + " id:" + docId + " not found");
+      case 200:
+        return jsonFactory.createParser(response.getBody());
+      default:
     }
 
     throw new IOException("Response code:"+response.getCode()+" body:"+response.getBody());
