@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import javax.persistence.PersistenceException;
 
+import com.avaje.ebean.text.PathProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -226,6 +227,35 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
    */
   public String getElasticDoc() {
     return elasticDoc;
+  }
+
+  /**
+   * Determine if and how the associated bean is included in the doc store document.
+   */
+  public void docStoreInclude(boolean includeByDefault, PathProperties pathProps) {
+
+    String embeddedDoc = getElasticDoc();
+    if (embeddedDoc == null) {
+      // not annotated so use include by default
+      // which is *ToOne included and *ToMany excluded
+      if (includeByDefault) {
+        docStoreIncludeByDefault(pathProps);
+      }
+    } else {
+      // explicitly annotated to be included
+      if (embeddedDoc.isEmpty()) {
+        embeddedDoc = "*";
+      }
+      // add in a nested way
+      pathProps.add(name, PathProperties.parse(embeddedDoc));
+    }
+  }
+
+  /**
+   * Include the property in the document store by default.
+   */
+  protected void docStoreIncludeByDefault(PathProperties pathProps) {
+    pathProps.addToPath(null, name);
   }
 
   /**

@@ -63,6 +63,7 @@ public class ElasticDocumentStore implements DocumentStore {
   private <T> void indexByQuery(final SpiBeanType<T> desc, Query<T> query, final DocStoreQueryUpdate queryUpdate) throws IOException {
 
     desc.docStoreApplyPath(query);
+    query.setLazyLoadBatchSize(100);
     query.findEach(new QueryEachConsumer<T>() {
       @Override
       public void accept(T bean) {

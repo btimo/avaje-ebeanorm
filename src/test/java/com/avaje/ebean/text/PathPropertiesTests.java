@@ -1,9 +1,8 @@
 package com.avaje.ebean.text;
 
-import org.junit.Assert;
 import org.junit.Test;
 
-import static org.assertj.core.api.StrictAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -101,5 +100,24 @@ public class PathPropertiesTests {
 
     PathProperties expect = PathProperties.parse("status,date,customer(id,name,address(line1,city))");
     assertThat(root.toString()).isEqualTo(expect.toString());
+  }
+
+  @Test
+  public void test_all_properties() {
+
+    PathProperties root = PathProperties.parse("*");
+    assertThat(root.get(null)).containsExactly("*");
+  }
+
+  @Test
+  public void test_all_properties_multipleLevels() {
+
+    PathProperties root = PathProperties.parse("*,customer(*)");
+    //PathProperties.Props rootProps = root.getProps(null);
+    PathProperties.Props customerProps = root.getProps("customer");
+
+    assertThat(root.get(null)).containsExactly("*","customer");
+    assertThat(customerProps.getPropertiesAsString()).isEqualTo("*");
+
   }
 }

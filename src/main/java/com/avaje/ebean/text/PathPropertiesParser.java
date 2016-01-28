@@ -72,28 +72,30 @@ class PathPropertiesParser {
   }
 
   private void parseSection() {
-    do {
-      char c1 = chars[pos++];
-      switch (c1) {
-      case '(':
-        addSubpath();
-        break;
-      case ',':
-        addCurrentProperty();
-        break;
-      case ':':
-        // start new section
-        startPos = pos;
-        return;
-      case ')':
-        // end of section
-        addCurrentProperty();
-        popSubpath();
-        break;
-      default:
-      }
+    if (pos < eof) {
+      do {
+        char c1 = chars[pos++];
+        switch (c1) {
+          case '(':
+            addSubpath();
+            break;
+          case ',':
+            addCurrentProperty();
+            break;
+          case ':':
+            // start new section
+            startPos = pos;
+            return;
+          case ')':
+            // end of section
+            addCurrentProperty();
+            popSubpath();
+            break;
+          default:
+        }
 
-    } while (pos < eof);
+      } while (pos < eof);
+    }
     if (startPos < pos) {
       String currentWord = source.substring(startPos, pos);
       currentPathProps.addProperty(currentWord);

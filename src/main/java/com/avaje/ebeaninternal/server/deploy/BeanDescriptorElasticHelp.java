@@ -91,33 +91,20 @@ public class BeanDescriptorElasticHelp<T> {
     }
 
     PathProperties pathProps = deploy.getElasticPathProperties();
-    boolean topLevelProperties = (pathProps != null);
+    boolean includeByDefault = isIncludeDefault(pathProps);
     if (pathProps  == null) {
-      // not defined so derive
       pathProps = new PathProperties();
     }
 
     BeanProperty[] properties = desc.propertiesNonTransient();
-
     for (int i = 0; i < properties.length; i++) {
-      if (topLevelProperties) {
-        // check property annotations
-        if (properties[i] instanceof BeanPropertyAssoc) {
-          String embeddedDoc = ((BeanPropertyAssoc)properties[i]).getElasticDoc();
-          if (embeddedDoc != null) {
-            // embedded doc specified on the property
-            pathProps.add(properties[i].getName(), PathProperties.parse(embeddedDoc));
-            //pathProps.addToPath(, );
-            //pathProps.get(null).add(properties[i].getName());
-          }
-        }
-      } else if (!(properties[i] instanceof BeanPropertyAssocMany)) {
-        // by default add all non many properties
-        pathProps.addToPath(null, properties[i].getName());
-      }
+      properties[i].docStoreInclude(includeByDefault, pathProps);
     }
-
     return pathProps;
+  }
+
+  private boolean isIncludeDefault(PathProperties pathProps) {
+    return pathProps == null;
   }
 
   public void docStoreApplyPath(Query<T> query) {
