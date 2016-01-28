@@ -43,9 +43,10 @@ public class BindablePropertyUpdateGenerated extends BindableProperty {
     request.bind(value, prop);
 
     if (prop.isVersion()) {
-      // must be loaded and only 1 version property so just register the
-      // value - we will set it after the where clause has been bound
-      request.registerGeneratedVersion(value);
+      if (request.getPersistRequest().isLoadedProperty(prop)) {
+        // TODO: Review this 1) bound when not loaded, 2) bound but not set changed value
+        request.registerGeneratedVersion(value);
+      }
     } else {
       // might not be loaded - set without invoking interception etc
       prop.setValueChanged(bean, value);
