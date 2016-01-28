@@ -672,6 +672,15 @@ public class BeanProperty implements ElPropertyValue {
   }
 
   /**
+   * Set the changed value without invoking interception (lazy loading etc).
+   * Typically used to set generated values on update.
+   */
+  public void setValueChanged(EntityBean bean, Object value) {
+    setValue(bean, value);
+    bean._ebean_getIntercept().setChangedProperty(propertyIndex);
+  }
+
+  /**
    * Set the value of the property without interception or
    * PropertyChangeSupport.
    */

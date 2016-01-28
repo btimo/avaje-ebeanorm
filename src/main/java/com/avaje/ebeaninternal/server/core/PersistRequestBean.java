@@ -592,9 +592,6 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
         return -1;
 
       case UPDATE:
-        if (docStoreEvent == DocStoreEvent.UPDATE) {
-          dirtyProperties = intercept.getDirtyProperties();
-        }
         if (beanPersistListener != null) {
           // store the updated properties for sending later
           updatedProperties = getUpdatedProperties();
@@ -716,6 +713,10 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
       controllerPost();
     }
 
+    if (type == Type.UPDATE && docStoreEvent == DocStoreEvent.UPDATE) {
+      // get the dirty properties for update notification to the doc store
+      dirtyProperties = intercept.getDirtyProperties();
+    }
     // if bean persisted again then should result in an update
     intercept.setLoaded();
     if (isInsert()) {
@@ -971,6 +972,13 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
    */
   public boolean isSoftDelete() {
     return Type.SOFT_DELETE == type;
+  }
+
+  /**
+   * Set the value of the Version property on the bean.
+   */
+  public void setVersionValue(Object versionValue) {
+    beanDescriptor.getVersionProperty().setValueIntercept(entityBean, versionValue);
   }
 
 }
