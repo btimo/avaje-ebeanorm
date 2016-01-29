@@ -7,7 +7,7 @@ import com.avaje.ebean.event.BeanPersistController;
 import com.avaje.ebean.event.BeanPersistListener;
 import com.avaje.ebean.event.BeanQueryAdapter;
 import com.avaje.ebean.text.json.JsonReadOptions;
-import com.avaje.ebeanservice.api.BulkElasticUpdate;
+import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
 import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
@@ -82,7 +82,7 @@ public interface SpiBeanType<T> {
    * Store the bean in the elasticSearch index (assuming the bean is fetched with appropriate path properties
    * to match the expected document structure).
    */
-  void elasticIndex(Object idValue, T bean, BulkElasticUpdate bulkElasticUpdate) throws IOException;
+  void elasticIndex(Object idValue, T bean, DocStoreBulkUpdate docStoreBulkUpdate) throws IOException;
 
   String getElasticIndexType();
 

@@ -1,7 +1,7 @@
 package com.avaje.ebeanservice.elastic;
 
 import com.avaje.ebean.plugin.SpiBeanType;
-import com.avaje.ebeanservice.api.BulkElasticUpdate;
+import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
 import com.avaje.ebeanservice.api.DocStoreQueryUpdate;
 
 import java.io.IOException;
@@ -23,7 +23,7 @@ public class ElasticQueryUpdate<T> implements DocStoreQueryUpdate<T> {
 
   int count;
 
-  BulkElasticUpdate current;
+  ElasticBulkUpdate current;
 
   public ElasticQueryUpdate(ElasticUpdateProcessor indexUpdateProcessor, int batchSize, SpiBeanType<T> beanType) throws IOException {
     this.indexUpdateProcessor = indexUpdateProcessor;
@@ -34,7 +34,7 @@ public class ElasticQueryUpdate<T> implements DocStoreQueryUpdate<T> {
 
   @Override
   public void store(Object idValue, T bean) throws IOException {
-    BulkElasticUpdate obtain = obtain();
+    DocStoreBulkUpdate obtain = obtain();
     beanType.elasticIndex(idValue, bean, obtain);
   }
 
@@ -56,7 +56,7 @@ public class ElasticQueryUpdate<T> implements DocStoreQueryUpdate<T> {
   /**
    * Obtain a BulkElasticUpdate for writing bulk requests to.
    */
-  private BulkElasticUpdate obtain() throws IOException {
+  private DocStoreBulkUpdate obtain() throws IOException {
     if (count++ > batchSize) {
       flush();
     }

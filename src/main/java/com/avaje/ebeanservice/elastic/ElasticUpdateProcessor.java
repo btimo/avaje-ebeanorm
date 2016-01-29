@@ -3,11 +3,10 @@ package com.avaje.ebeanservice.elastic;
 import com.avaje.ebean.config.JsonConfig;
 import com.avaje.ebean.plugin.SpiBeanType;
 import com.avaje.ebean.text.json.EJson;
-import com.avaje.ebeanservice.api.BulkElasticUpdate;
 import com.avaje.ebeanservice.api.DocStoreQueryUpdate;
+import com.avaje.ebeanservice.api.DocStoreUpdateAware;
 import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
 import com.avaje.ebeanservice.api.DocStoreUpdates;
-import com.avaje.ebeanservice.api.ElasticUpdateAware;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import org.slf4j.Logger;
@@ -72,7 +71,7 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
     queueWriter.queue(docStoreUpdates.getQueueEntries());
   }
 
-  public Map<String, Object> sendPayload(BulkElasticUpdate bulk, int size) throws IOException {
+  public Map<String, Object> sendPayload(ElasticBulkUpdate bulk) throws IOException {
 
     bulk.flush();
 
@@ -83,7 +82,7 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
 
     // send to Bulk API
     String response = messageSender.postBulk(payload);
-    elaLogger.debug("request entries:{} payloadSize:{} responseSize:{}", size, payload.length(), response.length());
+    elaLogger.debug("request entries:{} responseSize:{}", payload.length(), response.length());
 
     if (elaLogger.isTraceEnabled()) {
       elaLogger.trace("ElasticBulkMessage Response:\n" + response);
@@ -94,9 +93,9 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
   }
 
 
-  public Map<String, Object> sendBulk(BulkElasticUpdate bulk) throws IOException {
+  public Map<String, Object> sendBulk(ElasticBulkUpdate bulk) throws IOException {
 
-    return sendPayload(bulk, bulk.size());
+    return sendPayload(bulk);
   }
 
   /**
@@ -112,7 +111,7 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
     sendBulkUpdate(docStoreUpdates, batchSize, docStoreUpdates.getDeleteEvents(), addToQueueOnFailure);
   }
 
-  protected void sendBulkUpdate(DocStoreUpdates docStoreUpdates, int batchSize, List<? extends ElasticUpdateAware> entries, boolean addToQueueOnFailure) {
+  protected void sendBulkUpdate(DocStoreUpdates docStoreUpdates, int batchSize, List<? extends DocStoreUpdateAware> entries, boolean addToQueueOnFailure) {
 
     if (!entries.isEmpty()) {
       if (entries.size() <= batchSize) {
@@ -121,7 +120,7 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
 
       } else {
         // break into batches using the batchSize
-        List<? extends List<? extends ElasticUpdateAware>> batches = createBatches(entries, batchSize);
+        List<? extends List<? extends DocStoreUpdateAware>> batches = createBatches(entries, batchSize);
         for (int i = 0; i < batches.size(); i++) {
           sendBulkUpdateBatch(docStoreUpdates, batches.get(i), addToQueueOnFailure);
         }
@@ -137,18 +136,18 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
    * @param bulkEntries         The entries to send
    * @param addToQueueOnFailure if true then failures are added tho the queue
    */
-  protected void sendBulkUpdateBatch(DocStoreUpdates docStoreUpdates, List<? extends ElasticUpdateAware> bulkEntries, boolean addToQueueOnFailure) {
+  protected void sendBulkUpdateBatch(DocStoreUpdates docStoreUpdates, List<? extends DocStoreUpdateAware> bulkEntries, boolean addToQueueOnFailure) {
 
     try {
-      BulkElasticUpdate bulk = createBulkElasticUpdate();
+      ElasticBulkUpdate bulk = createBulkElasticUpdate();
 
-      for (ElasticUpdateAware entry : bulkEntries) {
-        entry.elasticBulkUpdate(bulk);
+      for (DocStoreUpdateAware entry : bulkEntries) {
+        entry.docStoreBulkUpdate(bulk);
       }
 
       bulk.flush();
 
-      Map<String, Object> responseMap = sendPayload(bulk,bulkEntries.size());
+      Map<String, Object> responseMap = sendPayload(bulk);
 
       Boolean errors = (Boolean) responseMap.get("errors");
 
@@ -168,7 +167,7 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
       logger.error("Failed to successfully send bulk update to ElasticSearch", e);
       if (addToQueueOnFailure) {
         // add all remaining requests the the queue
-        for (ElasticUpdateAware entry : bulkEntries) {
+        for (DocStoreUpdateAware entry : bulkEntries) {
           entry.addToQueue(docStoreUpdates);
         }
       }
@@ -210,11 +209,11 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
   /**
    * Create a BulkElasticUpdate.
    */
-  public BulkElasticUpdate createBulkElasticUpdate() throws IOException {
+  public ElasticBulkUpdate createBulkElasticUpdate() throws IOException {
 
     StringBuilderWriter writer = new StringBuilderWriter();
     JsonGenerator gen = jsonFactory.createGenerator(writer);
-    return new BulkElasticUpdate(gen, writer, defaultObjectMapper, defaultInclude);
+    return new ElasticBulkUpdate(gen, writer, defaultObjectMapper, defaultInclude);
   }
 
 }

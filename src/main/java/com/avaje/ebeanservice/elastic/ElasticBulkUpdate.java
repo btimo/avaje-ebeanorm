@@ -1,9 +1,10 @@
-package com.avaje.ebeanservice.api;
+package com.avaje.ebeanservice.elastic;
 
 import com.avaje.ebean.config.JsonConfig;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.server.text.json.WriteJson;
+import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
@@ -15,7 +16,7 @@ import java.io.Writer;
  *   This is used to build requests to be sent to the ElasticSearch Bulk API.
  * </p>
  */
-public class BulkElasticUpdate {
+public class ElasticBulkUpdate implements DocStoreBulkUpdate {
 
   private final JsonGenerator generator;
 
@@ -25,15 +26,14 @@ public class BulkElasticUpdate {
 
   private final JsonConfig.Include defaultInclude;
 
-  private int count;
-
-  public BulkElasticUpdate(JsonGenerator generator, Writer writer, Object defaultObjectMapper, JsonConfig.Include defaultInclude) {
+  public ElasticBulkUpdate(JsonGenerator generator, Writer writer, Object defaultObjectMapper, JsonConfig.Include defaultInclude) {
     this.generator = generator;
     this.writer = writer;
     this.defaultObjectMapper = defaultObjectMapper;
     this.defaultInclude = defaultInclude;
   }
 
+  @Override
   public WriteJson createWriteJson(SpiEbeanServer server, JsonGenerator gen, PathProperties pathProperties) {
     return new WriteJson(server, gen, pathProperties, null, defaultObjectMapper, defaultInclude);
   }
@@ -42,17 +42,10 @@ public class BulkElasticUpdate {
     return writer.toString();
   }
 
-  public int size() {
-    return count;
-  }
-
-  public int increment() {
-    return count++;
-  }
-
   /**
    * Return the JsonGenerator to write the JSON content to.
    */
+  @Override
   public JsonGenerator gen() {
     return generator;
   }

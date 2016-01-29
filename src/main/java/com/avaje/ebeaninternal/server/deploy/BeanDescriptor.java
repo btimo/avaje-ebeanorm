@@ -37,7 +37,6 @@ import com.avaje.ebeaninternal.api.SpiQuery;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.SpiUpdatePlan;
 import com.avaje.ebeaninternal.api.TransactionEventTable.TableIUD;
-import com.avaje.ebeanservice.api.BulkElasticUpdate;
 import com.avaje.ebeaninternal.server.cache.CachedBeanData;
 import com.avaje.ebeaninternal.server.core.CacheOptions;
 import com.avaje.ebeaninternal.server.core.DefaultSqlUpdate;
@@ -65,6 +64,8 @@ import com.avaje.ebeaninternal.server.type.DataBind;
 import com.avaje.ebeaninternal.util.SortByClause;
 import com.avaje.ebeaninternal.util.SortByClause.Property;
 import com.avaje.ebeaninternal.util.SortByClauseParser;
+import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
+import com.avaje.ebeanservice.api.DocStoreUpdates;
 import com.fasterxml.jackson.core.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -669,6 +670,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
         namedUpdate.initialise(parser);
       }
     }
+    elasticHelp.registerPaths();
   }
 
   public void initInheritInfo() {
@@ -893,6 +895,20 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     return elasticHelp.getIndexName();
   }
 
+  /**
+   * Register a doc store embedded/nested path that invalidates a document.
+   */
+  public void registerDocStoreInvalidationPath(String queueId, String path, Set<String> properties) {
+    elasticHelp.registerDocStoreInvalidationPath(queueId, path, properties);
+  }
+
+  /**
+   * Check if this update invalidates an embedded part of a doc store document.
+   */
+  public void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
+    elasticHelp.docStoreEmbeddedUpdate(request, docStoreUpdates);
+  }
+
   @Override
   public void docStoreApplyPath(Query<T> query) {
     elasticHelp.docStoreApplyPath(query);
@@ -907,23 +923,23 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   @Override
-  public void elasticIndex(Object idValue, T bean, BulkElasticUpdate bulkUpdate) throws IOException {
+  public void elasticIndex(Object idValue, T bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
     elasticHelp.writeIndexJson(idValue, (EntityBean)bean, bulkUpdate);
   }
 
-  public void elasticInsert(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate bulkUpdate) throws IOException {
+  public void elasticInsert(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
     elasticHelp.insert(idValue, persistRequest, bulkUpdate);
   }
 
-  public void elasticUpdate(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate bulkUpdate) throws IOException {
+  public void elasticUpdate(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
     elasticHelp.update(idValue, persistRequest, bulkUpdate);
   }
 
-  public void elasticDelete(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate bulkUpdate) throws IOException {
+  public void elasticDelete(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
     elasticHelp.delete(idValue, persistRequest, bulkUpdate);
   }
 
-  public void elasticDeleteById(Object idValue, BulkElasticUpdate txn) throws IOException {
+  public void elasticDeleteById(Object idValue, DocStoreBulkUpdate txn) throws IOException {
     elasticHelp.deleteById(idValue, txn);
   }
 

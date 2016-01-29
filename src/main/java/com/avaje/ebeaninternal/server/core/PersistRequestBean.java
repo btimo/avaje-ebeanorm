@@ -13,7 +13,6 @@ import com.avaje.ebeaninternal.api.DerivedRelationshipData;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEvent;
-import com.avaje.ebeanservice.api.BulkElasticUpdate;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.BeanManager;
 import com.avaje.ebeaninternal.server.deploy.BeanProperty;
@@ -21,8 +20,9 @@ import com.avaje.ebeaninternal.server.deploy.BeanPropertyAssocMany;
 import com.avaje.ebeaninternal.server.persist.BatchControl;
 import com.avaje.ebeaninternal.server.persist.PersistExecute;
 import com.avaje.ebeaninternal.server.transaction.BeanPersistIdMap;
+import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
 import com.avaje.ebeanservice.api.DocStoreUpdates;
-import com.avaje.ebeanservice.api.ElasticUpdateAware;
+import com.avaje.ebeanservice.api.DocStoreUpdateAware;
 
 import javax.persistence.OptimisticLockException;
 import javax.persistence.PersistenceException;
@@ -35,7 +35,7 @@ import java.util.Set;
 /**
  * PersistRequest for insert update or delete of a bean.
  */
-public final class PersistRequestBean<T> extends PersistRequest implements BeanPersistRequest<T>, ElasticUpdateAware {
+public final class PersistRequestBean<T> extends PersistRequest implements BeanPersistRequest<T>, DocStoreUpdateAware {
 
   private final BeanManager<T> beanManager;
 
@@ -275,6 +275,19 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
     return intercept.hasDirtyProperty(propertyNames);
   }
 
+  /**
+   * Return true if any of the given properties are dirty.
+   */
+  public boolean hasDirtyProperty(int[] propertyPositions) {
+
+    for (int i = 0; i < propertyPositions.length; i++) {
+      if (dirtyProperties[propertyPositions[i]]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override
   public Map<String, ValuePair> getUpdatedValues() {
     return intercept.getDirtyValues();
@@ -323,7 +336,7 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
   /**
    * Add appropriate JSON content for sending to the ElasticSearch Bulk API.
    */
-  public void elasticBulkUpdate(BulkElasticUpdate txn) throws IOException {
+  public void docStoreBulkUpdate(DocStoreBulkUpdate txn) throws IOException {
 
     switch (type) {
       case INSERT:
@@ -892,6 +905,9 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
    */
   public void addDocStoreUpdates(DocStoreUpdates docStoreUpdates) {
 
+    if (type == Type.UPDATE) {
+      beanDescriptor.docStoreEmbeddedUpdate(this, docStoreUpdates);
+    }
     switch (docStoreEvent) {
       case UPDATE: {
         docStoreUpdates.addPersist(this);

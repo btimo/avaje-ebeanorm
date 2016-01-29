@@ -9,10 +9,15 @@ import com.avaje.ebeaninternal.server.core.PersistRequest;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanDescriptor;
 import com.avaje.ebeaninternal.server.text.json.WriteJson;
-import com.avaje.ebeanservice.api.BulkElasticUpdate;
+import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
+import com.avaje.ebeanservice.api.DocStoreUpdates;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Helper for BeanDescriptor to handle the ElasticSearch features.
@@ -66,6 +71,13 @@ public class BeanDescriptorElasticHelp<T> {
    */
   private final DocStoreEvent delete;
 
+  /**
+   * List of embedded paths from other documents that include this document type.
+   * As such an update to this doc type means that those embedded documents need to be updated.
+   */
+  private final List<DsEmbeddedInvalidation> embeddedInvalidation = new ArrayList<DsEmbeddedInvalidation>();
+
+
   BeanDescriptorElasticHelp(BeanDescriptor<T> desc, DeployBeanDescriptor<T> deploy) {
 
     this.desc = desc;
@@ -78,6 +90,67 @@ public class BeanDescriptorElasticHelp<T> {
     this.insert = deploy.getElasticInsertEvent();
     this.update = deploy.getElasticUpdateEvent();
     this.delete = deploy.getElasticDeleteEvent();
+  }
+
+  /**
+   * Register invalidation paths for embedded documents.
+   */
+  public void registerPaths() {
+    if (elasticType == BeanElasticType.INDEX) {
+      Collection<PathProperties.Props> pathProps = pathProperties.getPathProps();
+      for (PathProperties.Props pathProp : pathProps) {
+        String path = pathProp.getPath();
+        if (path != null) {
+          BeanDescriptor<?> targetDesc = desc.getBeanDescriptor(path);
+          targetDesc.registerDocStoreInvalidationPath(desc.getElasticQueueId(), path, pathProp.getProperties());
+        }
+      }
+    }
+  }
+
+  /**
+   * Register a doc store invalidation listener for the given bean type, path and properties.
+   */
+  public void registerDocStoreInvalidationPath(String queueId, String path, Set<String> properties) {
+
+    embeddedInvalidation.add(getEmbeddedInvalidation(queueId, path, properties));
+  }
+
+  /**
+   * Return the DsInvalidationListener based on the properties, path.
+   */
+  private DsEmbeddedInvalidation getEmbeddedInvalidation(String queueId, String path, Set<String> properties) {
+
+    if (properties.contains("*")) {
+      return new DsEmbeddedInvalidation(queueId, path);
+
+    } else {
+      return new DsEmbeddedInvalidationProperties(queueId, path, getPropertyPositions(properties));
+    }
+  }
+
+  /**
+   * Return the property names as property index positions.
+   */
+  private int[] getPropertyPositions(Set<String> properties) {
+    List<Integer> posList = new ArrayList<Integer>();
+    for (String property : properties) {
+      BeanProperty prop = desc.getBeanProperty(property);
+      if (prop != null) {
+        posList.add(prop.getPropertyIndex());
+      }
+    }
+    int[] pos = new int[posList.size()];
+    for (int i = 0; i <pos.length; i++) {
+      pos[i] = posList.get(i);
+    }
+    return pos;
+  }
+
+  public void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
+    for (int i = 0; i < embeddedInvalidation.size(); i++) {
+      embeddedInvalidation.get(i).embeddedInvalidate(request, docStoreUpdates);
+    }
   }
 
   /**
@@ -153,22 +226,22 @@ public class BeanDescriptorElasticHelp<T> {
     return indexName;
   }
 
-  public void deleteById(Object idValue, BulkElasticUpdate txn) throws IOException {
+  public void deleteById(Object idValue, DocStoreBulkUpdate txn) throws IOException {
     JsonGenerator gen = txn.gen();
     writeBulkHeader(gen, idValue, "delete");
   }
 
-  public void delete(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
+  public void delete(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate txn) throws IOException {
     JsonGenerator gen = txn.gen();
     writeBulkHeader(gen, idValue, "delete");
   }
 
-  public void insert(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
+  public void insert(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate txn) throws IOException {
 
     writeIndexJson(idValue, persistRequest.getEntityBean(), txn);
   }
 
-  protected void writeIndexJson(Object idValue, EntityBean entityBean, BulkElasticUpdate txn) throws IOException {
+  protected void writeIndexJson(Object idValue, EntityBean entityBean, DocStoreBulkUpdate txn) throws IOException {
 
     JsonGenerator gen = txn.gen();
     writeBulkHeader(gen, idValue, "index");
@@ -180,7 +253,7 @@ public class BeanDescriptorElasticHelp<T> {
   }
 
 
-  public void update(Object idValue, PersistRequestBean<T> persistRequest, BulkElasticUpdate txn) throws IOException {
+  public void update(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate txn) throws IOException {
 
     JsonGenerator gen = txn.gen();
     writeBulkHeader(gen, idValue, "update");

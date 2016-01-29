@@ -1,6 +1,5 @@
 package com.avaje.ebeanservice.api;
 
-import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeanservice.api.DocStoreQueueEntry.Action;
 
 import java.util.ArrayList;
@@ -15,12 +14,12 @@ public class DocStoreUpdates {
   /**
    * Persist inserts and updates.
    */
-  private final List<PersistRequestBean<?>> persistEvents = new ArrayList<PersistRequestBean<?>>();
+  private final List<DocStoreUpdateAware> persistEvents = new ArrayList<DocStoreUpdateAware>();
 
   /**
    * Delete by Id.
    */
-  private final List<DocStoreDeleteEvent> deleteEvents = new ArrayList<DocStoreDeleteEvent>();
+  private final List<DocStoreUpdateAware> deleteEvents = new ArrayList<DocStoreUpdateAware>();
 
   /**
    * Entries sent to the queue for later processing.
@@ -41,14 +40,14 @@ public class DocStoreUpdates {
   /**
    * Add a request for processing via ElasticSearch Bulk API.
    */
-  public void addPersist(PersistRequestBean<?> bulkRequest) {
+  public void addPersist(DocStoreUpdateAware bulkRequest) {
     persistEvents.add(bulkRequest);
   }
 
   /**
    * Add a request for processing via ElasticSearch Bulk API.
    */
-  public void addDelete(DocStoreDeleteEvent bulkRequest) {
+  public void addDelete(DocStoreUpdateAware bulkRequest) {
     deleteEvents.add(bulkRequest);
   }
 
@@ -69,16 +68,23 @@ public class DocStoreUpdates {
   }
 
   /**
+   * Add a queue entry for an invalidation due to an update to a nested/embedded object.
+   */
+  public void queueNested(String queueId, String path, Object beanId) {
+    queueEntries.add(new DocStoreQueueEntry(Action.NESTED, queueId, path, beanId));
+  }
+
+  /**
    * Return the persist insert and update requests to be sent to the document store.
    */
-  public List<PersistRequestBean<?>> getPersistEvents() {
+  public List<DocStoreUpdateAware> getPersistEvents() {
     return persistEvents;
   }
 
   /**
    * Return delete events.
    */
-  public List<DocStoreDeleteEvent> getDeleteEvents() {
+  public List<DocStoreUpdateAware> getDeleteEvents() {
     return deleteEvents;
   }
 
