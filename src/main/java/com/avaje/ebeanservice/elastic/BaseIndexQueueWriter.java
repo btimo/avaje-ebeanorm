@@ -3,7 +3,7 @@ package com.avaje.ebeanservice.elastic;
 import com.avaje.ebean.EbeanServer;
 import com.avaje.ebean.SqlUpdate;
 import com.avaje.ebean.Transaction;
-import com.avaje.ebeanservice.api.DocStoreQueueEntry;
+import com.avaje.ebean.DocStoreQueueEntry;
 
 import java.sql.Timestamp;
 import java.util.List;

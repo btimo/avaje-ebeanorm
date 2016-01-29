@@ -1,4 +1,4 @@
-package com.avaje.ebeanservice.api;
+package com.avaje.ebean;
 
 /**
  * Bean holding the queueId and beanId used to queueIndex a request to updateAdd an ElasticSearch

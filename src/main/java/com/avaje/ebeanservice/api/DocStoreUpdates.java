@@ -1,6 +1,7 @@
 package com.avaje.ebeanservice.api;
 
-import com.avaje.ebeanservice.api.DocStoreQueueEntry.Action;
+import com.avaje.ebean.DocStoreQueueEntry;
+import com.avaje.ebean.DocStoreQueueEntry.Action;
 
 import java.util.ArrayList;
 import java.util.List;

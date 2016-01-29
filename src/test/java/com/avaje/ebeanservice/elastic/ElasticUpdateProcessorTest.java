@@ -4,7 +4,7 @@ import com.avaje.ebean.Ebean;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeanservice.api.DocStoreUpdates;
-import com.avaje.ebeanservice.api.DocStoreQueueEntry;
+import com.avaje.ebean.DocStoreQueueEntry;
 import com.avaje.ebeanservice.api.DocStoreDeleteEvent;
 import com.avaje.tests.model.basic.Contact;
 import com.fasterxml.jackson.core.JsonFactory;

@@ -1,6 +1,6 @@
 package com.avaje.ebeanservice.elastic;
 
-import com.avaje.ebeanservice.api.DocStoreQueueEntry;
+import com.avaje.ebean.DocStoreQueueEntry;
 
 import java.util.List;
 

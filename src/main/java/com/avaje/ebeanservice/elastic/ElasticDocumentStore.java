@@ -1,5 +1,6 @@
 package com.avaje.ebeanservice.elastic;
 
+import com.avaje.ebean.DocStoreQueueEntry;
 import com.avaje.ebean.DocumentStore;
 import com.avaje.ebean.PersistenceIOException;
 import com.avaje.ebean.Query;
@@ -14,6 +15,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * ElasticSearch based document store.
@@ -33,6 +35,11 @@ public class ElasticDocumentStore implements DocumentStore {
     this.updateProcessor = updateProcessor;
     this.messageSender = messageSender;
     this.jsonFactory = jsonFactory;
+  }
+
+  @Override
+  public void process(List<DocStoreQueueEntry> queueEntries) {
+
   }
 
   @Override

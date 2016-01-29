@@ -1,5 +1,7 @@
 package com.avaje.ebean;
 
+import java.util.List;
+
 /**
  * Document storage operations.
  */
@@ -31,5 +33,10 @@ public interface DocumentStore {
    * Return the bean by fetching it's content from the document store.
    */
   <T> T getById(Class<T> beanType, Object id);
+
+  /**
+   * Process the queue entries.
+   */
+  void process(List<DocStoreQueueEntry> queueEntries);
 
 }
