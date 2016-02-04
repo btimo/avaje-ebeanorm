@@ -2067,6 +2067,16 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     return beanDescriptorManager.getBeanTypes(tableName);
   }
 
+  @Override
+  public SpiBeanType<?> getBeanTypeForQueueId(String queueId) {
+    return getBeanDescriptorByQueueId(queueId);
+  }
+
+  @Override
+  public BeanDescriptor<?> getBeanDescriptorByQueueId(String queueId) {
+    return beanDescriptorManager.getBeanDescriptorByQueueId(queueId);
+  }
+
   /**
    * Return the SPI bean types for the given bean class.
    */

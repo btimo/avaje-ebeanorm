@@ -11,7 +11,6 @@ import com.avaje.ebean.bean.CallStack;
 import com.avaje.ebean.bean.ObjectGraphNode;
 import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.config.dbplatform.DatabasePlatform;
-import com.avaje.ebean.dbmigration.DdlGenerator;
 import com.avaje.ebean.event.readaudit.ReadAuditLogger;
 import com.avaje.ebean.event.readaudit.ReadAuditPrepare;
 import com.avaje.ebeaninternal.server.core.SpiOrmQueryRequest;
@@ -85,6 +84,11 @@ public interface SpiEbeanServer extends EbeanServer, BeanLoader, BeanCollectionL
    * Return BeanDescriptor using it's unique id.
    */
   BeanDescriptor<?> getBeanDescriptorById(String className);
+
+  /**
+   * Return BeanDescriptor using it's unique doc store queueId.
+   */
+  BeanDescriptor<?> getBeanDescriptorByQueueId(String queueId);
 
   /**
    * Return BeanDescriptors mapped to this table.

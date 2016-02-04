@@ -1,15 +1,15 @@
 package com.avaje.ebeanservice.elastic;
 
 /**
- * Created by rob on 7/06/15.
+ * Wrapper for a response code and body.
  */
-public class IndexMessageSenderResponse {
+public class IndexMessageResponse {
 
   private final int code;
 
   private final String body;
 
-  public IndexMessageSenderResponse(int code, String body) {
+  public IndexMessageResponse(int code, String body) {
     this.code = code;
     this.body = body;
   }

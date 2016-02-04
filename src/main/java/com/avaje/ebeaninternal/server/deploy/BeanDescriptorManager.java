@@ -133,6 +133,8 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private final Map<String, BeanDescriptor<?>> descMap = new HashMap<String, BeanDescriptor<?>>();
 
+  private final Map<String, BeanDescriptor<?>> descQueueMap = new HashMap<String, BeanDescriptor<?>>();
+
   private final Map<String, BeanManager<?>> beanManagerMap = new HashMap<String, BeanManager<?>>();
 
   private final Map<String, List<BeanDescriptor<?>>> tableToDescMap = new HashMap<String, List<BeanDescriptor<?>>>();
@@ -244,6 +246,10 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
   @Override
   public ServerConfig getServerConfig() {
     return serverConfig;
+  }
+
+  public BeanDescriptor<?> getBeanDescriptorByQueueId(String queueId) {
+    return descQueueMap.get(queueId);
   }
 
   @SuppressWarnings("unchecked")
@@ -518,6 +524,9 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private void registerBeanDescriptor(BeanDescriptor<?> desc) {
     descMap.put(desc.getBeanType().getName(), desc);
+    if (desc.isDocStoreIndex()) {
+      descQueueMap.put(desc.getElasticQueueId(), desc);
+    }
   }
 
   /**

@@ -38,7 +38,7 @@ public class BaseHttpMessageSender implements IndexMessageSender {
   }
 
   @Override
-  public IndexMessageSenderResponse getDocSource(String indexType, String indexName, String docId) throws IOException {
+  public IndexMessageResponse getDocSource(String indexType, String indexName, String docId) throws IOException {
 
     String url = baseUrl + indexType + "/" + indexName + "/" + docId + "/_source";
     Request request = new Request.Builder()
@@ -47,7 +47,7 @@ public class BaseHttpMessageSender implements IndexMessageSender {
 
     Response response = client.newCall(request).execute();
 
-    return new IndexMessageSenderResponse(response.code(), response.body().string());
+    return new IndexMessageResponse(response.code(), response.body().string());
   }
 
   @Override

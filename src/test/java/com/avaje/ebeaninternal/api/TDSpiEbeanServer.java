@@ -104,6 +104,11 @@ public class TDSpiEbeanServer implements SpiEbeanServer {
   }
 
   @Override
+  public BeanDescriptor<?> getBeanDescriptorByQueueId(String queueId) {
+    return null;
+  }
+
+  @Override
   public List<BeanDescriptor<?>> getBeanDescriptors() {
     return null;
   }

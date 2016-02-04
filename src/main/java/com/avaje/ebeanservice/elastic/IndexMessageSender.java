@@ -15,6 +15,6 @@ public interface IndexMessageSender {
   /**
    * Get the document source for a specific document.
    */
-  IndexMessageSenderResponse getDocSource(String indexType, String indexName, String docId) throws IOException;
+  IndexMessageResponse getDocSource(String indexType, String indexName, String docId) throws IOException;
 
 }

@@ -1,5 +1,8 @@
 package com.avaje.ebean;
 
+import org.jetbrains.annotations.Nullable;
+
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -31,12 +34,14 @@ public interface DocumentStore {
 
   /**
    * Return the bean by fetching it's content from the document store.
+   * If the document is not found null is returned.
    */
+  @Nullable
   <T> T getById(Class<T> beanType, Object id);
 
   /**
    * Process the queue entries.
    */
-  void process(List<DocStoreQueueEntry> queueEntries);
+  void process(List<DocStoreQueueEntry> queueEntries) throws IOException;
 
 }

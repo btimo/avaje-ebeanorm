@@ -4,6 +4,7 @@ import com.avaje.ebean.DocumentStore;
 import com.avaje.ebean.config.DocStoreConfig;
 import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebean.plugin.SpiServer;
+import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeanservice.api.DocStoreFactory;
 import com.avaje.ebeanservice.api.DocStoreIntegration;
 import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
@@ -26,9 +27,9 @@ public class ElasticDocStoreFactory implements DocStoreFactory {
     IndexQueueWriter indexQueueWriter = new BaseIndexQueueWriter(server, "eb_elastic_queue");
     IndexMessageSender messageSender = new BaseHttpMessageSender(docStoreConfig.getUrl());
 
-    DocStoreUpdateProcessor updateProcessor = new ElasticUpdateProcessor(indexQueueWriter, jsonFactory, objectMapper, messageSender, docStoreConfig.getBulkBatchSize());
+    ElasticUpdateProcessor updateProcessor = new ElasticUpdateProcessor(indexQueueWriter, jsonFactory, objectMapper, messageSender, docStoreConfig.getBulkBatchSize());
 
-    DocumentStore docStore = new ElasticDocumentStore(server, updateProcessor, messageSender, jsonFactory);
+    DocumentStore docStore = new ElasticDocumentStore((SpiEbeanServer)server, updateProcessor, messageSender, jsonFactory);
 
     return new Components(updateProcessor, docStore);
   }

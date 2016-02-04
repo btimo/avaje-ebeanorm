@@ -36,4 +36,8 @@ public interface SpiServer extends EbeanServer {
    */
   List<? extends SpiBeanType<?>> getBeanTypes(String baseTableName);
 
+  /**
+   * Return the bean type for a given doc store queueId.
+   */
+  SpiBeanType<?> getBeanTypeForQueueId(String queueId);
 }

@@ -184,6 +184,10 @@ public class BeanDescriptorElasticHelp<T> {
     query.apply(pathProperties);
   }
 
+  public boolean isDocStoreIndex() {
+    return BeanElasticType.INDEX == elasticType;
+  }
+
   public String getQueueId() {
     return queueId;
   }
@@ -231,14 +235,9 @@ public class BeanDescriptorElasticHelp<T> {
     writeBulkHeader(gen, idValue, "delete");
   }
 
-  public void delete(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate txn) throws IOException {
-    JsonGenerator gen = txn.gen();
-    writeBulkHeader(gen, idValue, "delete");
-  }
+  public void insert(Object idValue, EntityBean entityBean, DocStoreBulkUpdate txn) throws IOException {
 
-  public void insert(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate txn) throws IOException {
-
-    writeIndexJson(idValue, persistRequest.getEntityBean(), txn);
+    writeIndexJson(idValue, entityBean, txn);
   }
 
   protected void writeIndexJson(Object idValue, EntityBean entityBean, DocStoreBulkUpdate txn) throws IOException {

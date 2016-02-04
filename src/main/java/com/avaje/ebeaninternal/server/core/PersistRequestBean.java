@@ -340,13 +340,13 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
 
     switch (type) {
       case INSERT:
-        beanDescriptor.elasticInsert(idValue, this, txn);
+        beanDescriptor.elasticInsert(idValue, entityBean, txn);
         break;
       case UPDATE:
         beanDescriptor.elasticUpdate(idValue, this, txn);
         break;
       case DELETE:
-        beanDescriptor.elasticDelete(idValue, this, txn);
+        beanDescriptor.elasticDeleteById(idValue, txn);
         break;
       default:
         throw new IllegalStateException("Invalid type " + type);

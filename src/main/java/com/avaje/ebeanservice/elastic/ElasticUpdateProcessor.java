@@ -47,6 +47,11 @@ public class ElasticUpdateProcessor implements DocStoreUpdateProcessor {
     this.defaultBatchSize = defaultBatchSize;
   }
 
+  public ElasticBatchUpdate createBatchUpdate(int batchSize) throws IOException {
+
+    int batch = (batchSize > 0) ? batchSize : defaultBatchSize;
+    return new ElasticBatchUpdate(this, batch);
+  }
 
   @Override
   public <T> DocStoreQueryUpdate<T> createQueryUpdate(SpiBeanType<T> beanType, int batchSize) throws IOException {

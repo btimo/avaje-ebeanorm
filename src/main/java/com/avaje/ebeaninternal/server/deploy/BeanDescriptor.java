@@ -881,6 +881,13 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   /**
+   * Return true if this type maps to a root type of a doc store document (not embedded or ignored).
+   */
+  public boolean isDocStoreIndex() {
+    return elasticHelp.isDocStoreIndex();
+  }
+
+  /**
    * Return the queueId used to uniquely identify this type when queuing an index updateAdd.
    */
   public String getElasticQueueId() {
@@ -927,16 +934,12 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     elasticHelp.writeIndexJson(idValue, (EntityBean)bean, bulkUpdate);
   }
 
-  public void elasticInsert(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
-    elasticHelp.insert(idValue, persistRequest, bulkUpdate);
+  public void elasticInsert(Object idValue, EntityBean bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
+    elasticHelp.insert(idValue, bean, bulkUpdate);
   }
 
   public void elasticUpdate(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
     elasticHelp.update(idValue, persistRequest, bulkUpdate);
-  }
-
-  public void elasticDelete(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
-    elasticHelp.delete(idValue, persistRequest, bulkUpdate);
   }
 
   public void elasticDeleteById(Object idValue, DocStoreBulkUpdate txn) throws IOException {

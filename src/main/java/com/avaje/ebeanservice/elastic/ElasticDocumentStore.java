@@ -5,16 +5,18 @@ import com.avaje.ebean.DocumentStore;
 import com.avaje.ebean.PersistenceIOException;
 import com.avaje.ebean.Query;
 import com.avaje.ebean.QueryEachConsumer;
+import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.plugin.SpiBeanType;
-import com.avaje.ebean.plugin.SpiServer;
+import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiQuery;
+import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
+import com.avaje.ebeanservice.api.DocStoreDeleteEvent;
+import com.avaje.ebeanservice.api.DocStoreIndexEvent;
 import com.avaje.ebeanservice.api.DocStoreQueryUpdate;
-import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
 import com.avaje.ebeanservice.api.DocumentNotFoundException;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -22,15 +24,15 @@ import java.util.List;
  */
 public class ElasticDocumentStore implements DocumentStore {
 
-  private final SpiServer server;
+  private final SpiEbeanServer server;
 
-  private final DocStoreUpdateProcessor updateProcessor;
+  private final ElasticUpdateProcessor updateProcessor;
 
   private final IndexMessageSender messageSender;
 
   private final JsonFactory jsonFactory;
 
-  public ElasticDocumentStore(SpiServer server, DocStoreUpdateProcessor updateProcessor, IndexMessageSender messageSender, JsonFactory jsonFactory) {
+  public ElasticDocumentStore(SpiEbeanServer server, ElasticUpdateProcessor updateProcessor, IndexMessageSender messageSender, JsonFactory jsonFactory) {
     this.server = server;
     this.updateProcessor = updateProcessor;
     this.messageSender = messageSender;
@@ -38,9 +40,58 @@ public class ElasticDocumentStore implements DocumentStore {
   }
 
   @Override
-  public void process(List<DocStoreQueueEntry> queueEntries) {
+  public void process(List<DocStoreQueueEntry> entries) throws IOException {
+
+    ElasticUpdateGroups groups = new ElasticUpdateGroups();
+    groups.addAll(entries);
+
+    ElasticBatchUpdate txn = updateProcessor.createBatchUpdate(0);
+
+    try {
+      for (ElasticUpdateGroup group : groups.groups()) {
+        BeanDescriptor<?> desc = server.getBeanDescriptorByQueueId(group.getQueueId());
+        processGroup(txn, group, desc);
+      }
+
+      txn.flush();
+
+    } catch (IOException e) {
+      throw new PersistenceIOException(e);
+    }
+  }
+
+  private <T> void processGroup(ElasticBatchUpdate txn, ElasticUpdateGroup group, BeanDescriptor<T> desc) throws IOException {
+
+    List<Object> deleteIds = group.getDeleteIds();
+    for (Object id : deleteIds) {
+      txn.addEvent(new DocStoreDeleteEvent(desc, id));
+    }
+
+    List<Object> indexIds = group.getIndexIds();
+    Query<T> query = server.createQuery(desc.getBeanType());
+    query.where().idIn(indexIds);
+
+    indexUsingQuery(desc, query, txn);
+
+    Collection<ElasticUpdateGroup.Nested> values = group.getPathIds().values();
+    for (ElasticUpdateGroup.Nested nested : values) {
+
+      // customer
+      String path = nested.getPath();
+
+      // customer Ids
+      List<Object> nestedIds = nested.getIds();
+
+      BeanDescriptor<?> targetDesc = desc.getBeanDescriptor(path);
+      Query<?> pathQuery = server.createQuery(targetDesc.getBeanType());
+      pathQuery.where().idIn(nestedIds);
+
+
+
+    }
 
   }
+
 
   @Override
   public <T> void indexByQuery(Query<T> query) {
@@ -53,7 +104,7 @@ public class ElasticDocumentStore implements DocumentStore {
     SpiQuery<T> spiQuery = (SpiQuery<T>) query;
     Class<T> beanType = spiQuery.getBeanType();
 
-    SpiBeanType<T> beanDescriptor = server.getBeanType(beanType);
+    SpiBeanType<T> beanDescriptor = server.getBeanDescriptor(beanType);
     if (beanDescriptor == null) {
       throw new IllegalArgumentException("Type [" + beanType + "] does not appear to be an entity bean type?");
     }
@@ -66,6 +117,23 @@ public class ElasticDocumentStore implements DocumentStore {
     } catch (IOException e) {
       throw new PersistenceIOException(e);
     }
+  }
+
+  private <T> void indexUsingQuery(final BeanDescriptor<T> desc, Query<T> query, final ElasticBatchUpdate txn) throws IOException {
+
+    desc.docStoreApplyPath(query);
+    query.setLazyLoadBatchSize(100);
+    query.findEach(new QueryEachConsumer<T>() {
+      @Override
+      public void accept(T bean) {
+        Object idValue = desc.getBeanId(bean);
+        try {
+          txn.addEvent(new DocStoreIndexEvent(desc, idValue, (EntityBean)bean));
+        } catch (Exception e) {
+          throw new PersistenceIOException("Error performing query update to doc store", e);
+        }
+      }
+    });
   }
 
   private <T> void indexByQuery(final SpiBeanType<T> desc, Query<T> query, final DocStoreQueryUpdate queryUpdate) throws IOException {
@@ -88,7 +156,7 @@ public class ElasticDocumentStore implements DocumentStore {
   @Override
   public <T> T getById(Class<T> beanType, Object id) {
 
-    SpiBeanType<T> beanDescriptor = server.getBeanType(beanType);
+    SpiBeanType<T> beanDescriptor = server.getBeanDescriptor(beanType);
     if (beanDescriptor == null) {
       throw new IllegalArgumentException("Type [" + beanType + "] does not appear to be an entity bean type?");
     }
@@ -111,7 +179,7 @@ public class ElasticDocumentStore implements DocumentStore {
 
   private JsonParser getSource(String indexType, String indexName, Object docId) throws IOException, DocumentNotFoundException {
 
-    IndexMessageSenderResponse response = messageSender.getDocSource(indexType, indexName, docId.toString());
+    IndexMessageResponse response = messageSender.getDocSource(indexType, indexName, docId.toString());
 
     switch (response.getCode()) {
       case 404:
