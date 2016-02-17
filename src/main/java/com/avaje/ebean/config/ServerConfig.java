@@ -130,6 +130,11 @@ public class ServerConfig {
   private String classPathReaderClassName;
 
   /**
+   * Configuration for the ElasticSearch integration.
+   */
+  private DocStoreConfig docStoreConfig = new DocStoreConfig();
+
+  /**
    * This is used to populate @WhoCreated, @WhoModified and
    * support other audit features (who executed a query etc).
    */
@@ -283,7 +288,7 @@ public class ServerConfig {
   private DbConstraintNaming constraintNaming = new DbConstraintNaming();
 
   /** 
-   * Behaviour of update to include on the change properties. 
+   * Behaviour of update to include on the change properties.
    */
   private boolean updateChangesOnly = true;
 
@@ -1151,6 +1156,20 @@ public class ServerConfig {
    */
   public void setNamingConvention(NamingConvention namingConvention) {
     this.namingConvention = namingConvention;
+  }
+
+  /**
+   * Return the configuration for the ElasticSearch integration.
+   */
+  public DocStoreConfig getDocStoreConfig() {
+    return docStoreConfig;
+  }
+
+  /**
+   * Set the configuration for the ElasticSearch integration.
+   */
+  public void setDocStoreConfig(DocStoreConfig docStoreConfig) {
+    this.docStoreConfig = docStoreConfig;
   }
 
   /**
@@ -2214,6 +2233,13 @@ public class ServerConfig {
   /**
    * This is broken out for the same reason as above - preserve existing behaviour but let it be overridden.
    */
+  protected void loadElasticSettings(PropertiesWrapper p) {
+    docStoreConfig.loadSettings(p);
+  }
+
+  /**
+   * This is broken out for the same reason as above - preserve existing behaviour but let it be overridden.
+   */
   protected void loadAutoTuneSettings(PropertiesWrapper p) {
     autoTuneConfig.loadSettings(p);
   }
@@ -2238,6 +2264,11 @@ public class ServerConfig {
       dataSourceConfig = new DataSourceConfig();
     }
     loadDataSourceSettings(p);
+
+    if (docStoreConfig == null) {
+      docStoreConfig = new DocStoreConfig();
+    }
+    docStoreConfig.loadSettings(p);
 
     explicitTransactionBeginMode = p.getBoolean("explicitTransactionBeginMode", explicitTransactionBeginMode);
     autoCommitMode = p.getBoolean("autoCommitMode", autoCommitMode);

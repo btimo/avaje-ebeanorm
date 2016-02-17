@@ -35,6 +35,8 @@ import com.avaje.ebeaninternal.api.SpiQuery.Type;
 import com.avaje.ebeaninternal.api.SpiSqlQuery;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
+import com.avaje.ebeanservice.api.DocStoreIntegration;
+import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
 import com.avaje.ebeaninternal.server.autotune.AutoTuneService;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
@@ -138,6 +140,8 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
 
   private final CQueryEngine cqueryEngine;
 
+//  private final DocStoreUpdateProcessor docStoreUpdateProcessor;
+
   private final List<SpiServerPlugin> serverPlugins;
 
   private final DdlGenerator ddlGenerator;
@@ -151,6 +155,8 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
   private final EncryptKeyManager encryptKeyManager;
 
   private final JsonContext jsonContext;
+
+  private final DocumentStore documentStore;
 
   private final MetaInfoManager metaInfoManager;
   
@@ -219,8 +225,6 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     this.maxCallStack = serverConfig.getMaxCallStack();
 
     this.rollbackOnChecked = serverConfig.isTransactionRollbackOnChecked();
-    this.transactionManager = config.getTransactionManager();
-    this.transactionScopeManager = config.getTransactionScopeManager();
 
     this.persister = config.createPersister(this);
     this.queryEngine = config.createOrmQueryEngine();
@@ -232,6 +236,12 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
 
     this.beanLoader = new DefaultBeanLoader(this);
     this.jsonContext = config.createJsonContext(this);
+
+    DocStoreIntegration docStoreComponents = config.createDocStoreIntegration(this);
+    this.transactionManager = config.createTransactionManager(docStoreComponents.updateProcessor());
+    this.transactionScopeManager = config.createTransactionScopeManager(transactionManager);
+    this.documentStore = docStoreComponents.documentStore();
+
     this.serverPlugins = config.getPlugins();
     this.ddlGenerator = new DdlGenerator(this, serverConfig);
 
@@ -2011,6 +2021,16 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     return beanDescriptorManager.getBeanTypes(tableName);
   }
 
+  @Override
+  public SpiBeanType<?> getBeanTypeForQueueId(String queueId) {
+    return getBeanDescriptorByQueueId(queueId);
+  }
+
+  @Override
+  public BeanDescriptor<?> getBeanDescriptorByQueueId(String queueId) {
+    return beanDescriptorManager.getBeanDescriptorByQueueId(queueId);
+  }
+
   /**
    * Return the SPI bean types for the given bean class.
    */
@@ -2111,6 +2131,11 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     }
 
     return callStackFactory.createCallStack(finalTrace);
+  }
+
+  @Override
+  public DocumentStore docStore() {
+    return documentStore;
   }
 
   @Override

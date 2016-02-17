@@ -7,6 +7,7 @@ import com.avaje.ebean.SqlUpdate;
 import com.avaje.ebean.Transaction;
 import com.avaje.ebean.ValuePair;
 import com.avaje.ebean.annotation.ConcurrencyMode;
+import com.avaje.ebean.annotation.DocStoreEvent;
 import com.avaje.ebean.bean.BeanCollection;
 import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.bean.EntityBeanIntercept;
@@ -29,6 +30,7 @@ import com.avaje.ebean.event.readaudit.ReadEvent;
 import com.avaje.ebean.meta.MetaBeanInfo;
 import com.avaje.ebean.meta.MetaQueryPlanStatistic;
 import com.avaje.ebean.plugin.SpiBeanType;
+import com.avaje.ebean.text.json.JsonReadOptions;
 import com.avaje.ebeaninternal.api.CQueryPlanKey;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiQuery;
@@ -62,6 +64,9 @@ import com.avaje.ebeaninternal.server.type.DataBind;
 import com.avaje.ebeaninternal.util.SortByClause;
 import com.avaje.ebeaninternal.util.SortByClause.Property;
 import com.avaje.ebeaninternal.util.SortByClauseParser;
+import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
+import com.avaje.ebeanservice.api.DocStoreUpdates;
+import com.fasterxml.jackson.core.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -342,10 +347,13 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
 
   private final boolean cacheSharableBeans;
 
+  private final String elasticQueueId;
+
   private final BeanDescriptorDraftHelp<T> draftHelp;
   private final BeanDescriptorCacheHelp<T> cacheHelp;
   private final BeanDescriptorJsonHelp<T> jsonHelp;
-  
+  private final BeanDescriptorElasticHelp<T> elasticHelp;
+
   private final String defaultSelectClause;
   private final LinkedHashSet<String> defaultSelectClauseSet;
 
@@ -440,12 +448,15 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     this.derivedTableJoins = listHelper.getTableJoin();
 
     boolean noRelationships = propertiesOne.length + propertiesMany.length == 0;
-    
+
     this.cacheSharableBeans = noRelationships && deploy.getCacheOptions().isReadOnly();
     this.cacheHelp = new BeanDescriptorCacheHelp<T>(this, owner.getCacheManager(), deploy.getCacheOptions(), cacheSharableBeans, propertiesOneImported);
     this.jsonHelp = new BeanDescriptorJsonHelp<T>(this);
     this.draftHelp = new BeanDescriptorDraftHelp<T>(this);
-    
+
+    this.elasticHelp = new BeanDescriptorElasticHelp<T>(this, deploy);
+    this.elasticQueueId = elasticHelp.getQueueId();
+
     // Check if there are no cascade save associated beans ( subject to change
     // in initialiseOther()). Note that if we are in an inheritance hierarchy 
     // then we also need to check every BeanDescriptors in the InheritInfo as 
@@ -659,6 +670,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
         namedUpdate.initialise(parser);
       }
     }
+    elasticHelp.registerPaths();
   }
 
   public void initInheritInfo() {
@@ -866,6 +878,72 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    */
   public boolean isInheritanceRoot() {
     return inheritInfo == null || inheritInfo.isRoot();
+  }
+
+  /**
+   * Return true if this type maps to a root type of a doc store document (not embedded or ignored).
+   */
+  public boolean isDocStoreIndex() {
+    return elasticHelp.isDocStoreIndex();
+  }
+
+  /**
+   * Return the queueId used to uniquely identify this type when queuing an index updateAdd.
+   */
+  public String getElasticQueueId() {
+    return elasticQueueId;
+  }
+
+  public String getElasticIndexType() {
+    return elasticHelp.getIndexType();
+  }
+
+  public String getElasticIndexName() {
+    return elasticHelp.getIndexName();
+  }
+
+  /**
+   * Register a doc store embedded/nested path that invalidates a document.
+   */
+  public void registerDocStoreInvalidationPath(String queueId, String path, Set<String> properties) {
+    elasticHelp.registerDocStoreInvalidationPath(queueId, path, properties);
+  }
+
+  /**
+   * Check if this update invalidates an embedded part of a doc store document.
+   */
+  public void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
+    elasticHelp.docStoreEmbeddedUpdate(request, docStoreUpdates);
+  }
+
+  @Override
+  public void docStoreApplyPath(Query<T> query) {
+    elasticHelp.docStoreApplyPath(query);
+  }
+
+  /**
+   * Return the type of DocStoreEvent that should occur for this type of persist request
+   * given the transactions requested mode.
+   */
+  public DocStoreEvent getDocStoreEvent(PersistRequest.Type persistType, DocStoreEvent txnMode) {
+    return elasticHelp.getDocStoreEvent(persistType, txnMode);
+  }
+
+  @Override
+  public void elasticIndex(Object idValue, T bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
+    elasticHelp.writeIndexJson(idValue, (EntityBean)bean, bulkUpdate);
+  }
+
+  public void elasticInsert(Object idValue, EntityBean bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
+    elasticHelp.insert(idValue, bean, bulkUpdate);
+  }
+
+  public void elasticUpdate(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
+    elasticHelp.update(idValue, persistRequest, bulkUpdate);
+  }
+
+  public void elasticDeleteById(Object idValue, DocStoreBulkUpdate txn) throws IOException {
+    elasticHelp.deleteById(idValue, txn);
   }
 
   public T publish(T draftBean, T liveBean) {
@@ -1550,6 +1628,13 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    */
   public Object convertId(Object idValue) {
     return idBinder.convertId(idValue);
+  }
+
+  /**
+   * Set the bean id value converting if necessary.
+   */
+  public void setBeanId(T bean, Object idValue) {
+    idBinder.convertSetId(idValue, (EntityBean) bean);
   }
 
   /**
@@ -2442,6 +2527,14 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     return propertiesLocal;
   }
 
+  public void jsonWriteDirty(WriteJson writeJson, EntityBean bean, boolean[] dirtyProps) throws IOException {
+    jsonHelp.jsonWriteDirty(writeJson, bean, dirtyProps);
+  }
+
+  protected void jsonWriteDirtyProperties(WriteJson writeJson, EntityBean bean, boolean[] dirtyProps) throws IOException {
+    jsonHelp.jsonWriteDirtyProperties(writeJson, bean, dirtyProps);
+  }
+
   public void jsonWrite(WriteJson writeJson, EntityBean bean) throws IOException {
     jsonHelp.jsonWrite(writeJson, bean, null);
   }  
@@ -2460,5 +2553,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   
   protected T jsonReadObject(ReadJson jsonRead, String path) throws IOException {
     return jsonHelp.jsonReadObject(jsonRead, path);
+  }
+
+  @Override
+  public T jsonRead(JsonParser parser, JsonReadOptions readOptions, Object objectMapper) throws IOException {
+    ReadJson jsonRead = new ReadJson(parser, readOptions, objectMapper);
+    return jsonRead(jsonRead, null);
   }
 }

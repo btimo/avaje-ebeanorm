@@ -6,6 +6,7 @@ import com.avaje.ebean.bean.BeanCollection.ModifyListenMode;
 import com.avaje.ebean.bean.BeanCollectionAdd;
 import com.avaje.ebean.bean.BeanCollectionLoader;
 import com.avaje.ebean.bean.EntityBean;
+import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.api.SpiQuery;
 import com.avaje.ebeaninternal.server.core.DefaultSqlUpdate;
 import com.avaje.ebeaninternal.server.deploy.id.ImportedId;
@@ -177,6 +178,11 @@ public class BeanPropertyAssocMany<T> extends BeanPropertyAssoc<T> {
       deleteByParentIdSql = delStmt + deriveWhereParentIdSql(false, "");
       deleteByParentIdInSql = delStmt + deriveWhereParentIdSql(true, "");
     }
+  }
+
+  @Override
+  protected void docStoreIncludeByDefault(PathProperties pathProps) {
+    // by default not including "Many" properties in document store
   }
 
   /**

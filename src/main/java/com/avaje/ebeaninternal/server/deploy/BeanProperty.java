@@ -5,6 +5,7 @@ import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.config.EncryptKey;
 import com.avaje.ebean.config.dbplatform.DbEncryptFunction;
 import com.avaje.ebean.config.dbplatform.DbType;
+import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebean.text.StringParser;
 import com.avaje.ebeaninternal.server.core.InternString;
 import com.avaje.ebeaninternal.server.deploy.generatedproperty.GeneratedProperty;
@@ -671,6 +672,15 @@ public class BeanProperty implements ElPropertyValue {
   }
 
   /**
+   * Set the changed value without invoking interception (lazy loading etc).
+   * Typically used to set generated values on update.
+   */
+  public void setValueChanged(EntityBean bean, Object value) {
+    setValue(bean, value);
+    bean._ebean_getIntercept().setChangedProperty(propertyIndex);
+  }
+
+  /**
    * Set the value of the property without interception or
    * PropertyChangeSupport.
    */
@@ -1187,6 +1197,14 @@ public class BeanProperty implements ElPropertyValue {
     return name;
   }
 
+  /**
+   * Append this property to the document store based on includeByDefault setting.
+   */
+  public void docStoreInclude(boolean includeByDefault, PathProperties pathProps) {
+    if (includeByDefault) {
+      pathProps.addToPath(null, getName());
+    }
+  }
 
   @SuppressWarnings(value = "unchecked")
   public void jsonWrite(WriteJson writeJson, EntityBean bean) throws IOException {

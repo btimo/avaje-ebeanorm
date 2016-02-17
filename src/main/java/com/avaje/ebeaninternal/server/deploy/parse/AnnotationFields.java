@@ -64,7 +64,7 @@ public class AnnotationFields extends AnnotationParser {
 
     for (DeployBeanProperty prop : descriptor.propertiesAll()) {
       if (prop instanceof DeployBeanPropertyAssoc<?>) {
-        readAssocOne(prop);
+        readAssocOne((DeployBeanPropertyAssoc<?>)prop);
       } else {
         readField(prop);
       }
@@ -74,7 +74,7 @@ public class AnnotationFields extends AnnotationParser {
   /**
    * Read the Id marker annotations on EmbeddedId properties.
    */
-  private void readAssocOne(DeployBeanProperty prop) {
+  private void readAssocOne(DeployBeanPropertyAssoc<?> prop) {
 
     readJsonAnnotations(prop);
 
@@ -89,6 +89,11 @@ public class AnnotationFields extends AnnotationParser {
       prop.setId();
       prop.setNullable(false);
       prop.setEmbedded();
+    }
+
+    DocStoreEmbedded elasticEmbedded = get(prop, DocStoreEmbedded.class);
+    if (elasticEmbedded != null) {
+      prop.setElasticEmbedded(elasticEmbedded);
     }
 
     if (prop instanceof DeployBeanPropertyAssocOne<?>) {

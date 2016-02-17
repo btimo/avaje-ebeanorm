@@ -111,6 +111,8 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private final BeanManagerFactory beanManagerFactory;
 
+  private final ServerConfig serverConfig;
+
   private final ChangeLogListener changeLogListener;
 
   private final ChangeLogRegister changeLogRegister;
@@ -125,13 +127,13 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private final String serverName;
 
-  private final ServerConfig serverConfig;
-
   private Map<Class<?>, DeployBeanInfo<?>> deplyInfoMap = new HashMap<Class<?>, DeployBeanInfo<?>>();
 
   private final Map<Class<?>, BeanTable> beanTableMap = new HashMap<Class<?>, BeanTable>();
 
   private final Map<String, BeanDescriptor<?>> descMap = new HashMap<String, BeanDescriptor<?>>();
+
+  private final Map<String, BeanDescriptor<?>> descQueueMap = new HashMap<String, BeanDescriptor<?>>();
 
   private final Map<String, BeanManager<?>> beanManagerMap = new HashMap<String, BeanManager<?>>();
 
@@ -244,6 +246,10 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
   @Override
   public ServerConfig getServerConfig() {
     return serverConfig;
+  }
+
+  public BeanDescriptor<?> getBeanDescriptorByQueueId(String queueId) {
+    return descQueueMap.get(queueId);
   }
 
   @SuppressWarnings("unchecked")
@@ -518,6 +524,9 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private void registerBeanDescriptor(BeanDescriptor<?> desc) {
     descMap.put(desc.getBeanType().getName(), desc);
+    if (desc.isDocStoreIndex()) {
+      descQueueMap.put(desc.getElasticQueueId(), desc);
+    }
   }
 
   /**
@@ -1050,7 +1059,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
    */
   private <T> DeployBeanInfo<T> createDeployBeanInfo(Class<T> beanClass) {
 
-    DeployBeanDescriptor<T> desc = new DeployBeanDescriptor<T>(beanClass);
+    DeployBeanDescriptor<T> desc = new DeployBeanDescriptor<T>(beanClass, serverConfig);
 
     desc.setUpdateChangesOnly(updateChangesOnly);
 
