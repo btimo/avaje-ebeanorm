@@ -34,12 +34,12 @@ public class BeanDescriptorElasticHelp<T> {
   /**
    * The type of index.
    */
-  private final BeanElasticType elasticType;
+  private final BeanDocStoreType elasticType;
 
   /**
    * Nested path properties defining the doc structure for indexing.
    */
-  private final PathProperties pathProperties;
+  private final DocStructure docStructure;
 
   /**
    * Identifier used in the queue system to identify the index.
@@ -82,27 +82,27 @@ public class BeanDescriptorElasticHelp<T> {
 
     this.desc = desc;
     this.server = desc.getEbeanServer();
-    this.elasticType = deploy.getElasticType();
-    this.pathProperties = derivePathProperties(deploy);
-    this.queueId = derive(desc, deploy.getElasticQueueId());
-    this.indexName = derive(desc, deploy.getElasticIndexName());
-    this.indexType = derive(desc, deploy.getElasticIndexType());
-    this.insert = deploy.getElasticInsertEvent();
-    this.update = deploy.getElasticUpdateEvent();
-    this.delete = deploy.getElasticDeleteEvent();
+    this.elasticType = deploy.getDocStoreBeanType();
+    this.docStructure = derivePathProperties(deploy);
+    this.queueId = derive(desc, deploy.getDocStoreQueueId());
+    this.indexName = derive(desc, deploy.getDocStoreIndexName());
+    this.indexType = derive(desc, deploy.getDocStoreIndexType());
+    this.insert = deploy.getDocStoreInsertEvent();
+    this.update = deploy.getDocStoreUpdateEvent();
+    this.delete = deploy.getDocStoreDeleteEvent();
   }
 
   /**
    * Register invalidation paths for embedded documents.
    */
   public void registerPaths() {
-    if (elasticType == BeanElasticType.INDEX) {
-      Collection<PathProperties.Props> pathProps = pathProperties.getPathProps();
+    if (elasticType == BeanDocStoreType.INDEX) {
+      Collection<PathProperties.Props> pathProps = docStructure.doc().getPathProps();
       for (PathProperties.Props pathProp : pathProps) {
         String path = pathProp.getPath();
         if (path != null) {
           BeanDescriptor<?> targetDesc = desc.getBeanDescriptor(path);
-          targetDesc.registerDocStoreInvalidationPath(desc.getElasticQueueId(), path, pathProp.getProperties());
+          targetDesc.registerDocStoreInvalidationPath(desc.getDocStoreQueueId(), path, pathProp.getProperties());
         }
       }
     }
@@ -157,35 +157,40 @@ public class BeanDescriptorElasticHelp<T> {
    * Return the pathProperties which defines the JSON document to index.
    * This can add derived/embedded/nested parts to the document.
    */
-  private PathProperties derivePathProperties(DeployBeanDescriptor<T> deploy) {
+  private DocStructure derivePathProperties(DeployBeanDescriptor<T> deploy) {
 
-    if (!BeanElasticType.INDEX.equals(deploy.getElasticType())) {
+    if (!BeanDocStoreType.INDEX.equals(deploy.getDocStoreBeanType())) {
       return null;
     }
 
-    PathProperties pathProps = deploy.getElasticPathProperties();
+    PathProperties pathProps = deploy.getDocStorePathProperties();
     boolean includeByDefault = isIncludeDefault(pathProps);
     if (pathProps  == null) {
       pathProps = new PathProperties();
     }
+    DocStructure docStructure = new DocStructure(pathProps);
 
     BeanProperty[] properties = desc.propertiesNonTransient();
     for (int i = 0; i < properties.length; i++) {
-      properties[i].docStoreInclude(includeByDefault, pathProps);
+      properties[i].docStoreInclude(includeByDefault, docStructure);
     }
-    return pathProps;
+    return docStructure;
   }
 
   private boolean isIncludeDefault(PathProperties pathProps) {
     return pathProps == null;
   }
 
+  public PathProperties docStoreNested(String path) {
+    return docStructure.getNested(path);
+  }
+
   public void docStoreApplyPath(Query<T> query) {
-    query.apply(pathProperties);
+    query.apply(docStructure.doc());
   }
 
   public boolean isDocStoreIndex() {
-    return BeanElasticType.INDEX == elasticType;
+    return BeanDocStoreType.INDEX == elasticType;
   }
 
   public String getQueueId() {
@@ -199,7 +204,7 @@ public class BeanDescriptorElasticHelp<T> {
     } else if (txnMode == DocStoreEvent.IGNORE) {
       return DocStoreEvent.IGNORE;
     }
-    return (BeanElasticType.INDEX == elasticType) ? txnMode : getDocStoreEvent(persistType);
+    return (BeanDocStoreType.INDEX == elasticType) ? txnMode : getDocStoreEvent(persistType);
   }
 
   private DocStoreEvent getDocStoreEvent(PersistRequest.Type persistType) {
@@ -246,7 +251,7 @@ public class BeanDescriptorElasticHelp<T> {
     writeBulkHeader(gen, idValue, "index");
 
     // use the pathProperties for 'index' requests
-    WriteJson writeJson = txn.createWriteJson(server, gen, pathProperties);
+    WriteJson writeJson = txn.createWriteJson(server, gen, docStructure.doc());
     desc.jsonWrite(writeJson, entityBean);
     gen.writeRaw("\n");
   }
@@ -262,6 +267,22 @@ public class BeanDescriptorElasticHelp<T> {
     // only the 'dirty' properties included in 'update' request
     WriteJson writeJson = txn.createWriteJson(server, gen, null);
     desc.jsonWriteDirty(writeJson, persistRequest.getEntityBean(), persistRequest.getDirtyProperties());
+    gen.writeEndObject();
+    gen.writeRaw("\n");
+  }
+
+  public void update(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreBulkUpdate txn) throws IOException {
+
+    JsonGenerator gen = txn.gen();
+    writeBulkHeader(gen, idValue, "update");
+
+    gen.writeStartObject();
+      gen.writeFieldName("doc");
+      gen.writeStartObject();
+        gen.writeFieldName(embeddedProperty);
+        gen.writeRaw(":");
+        gen.writeRaw(embeddedRawContent);
+      gen.writeEndObject();
     gen.writeEndObject();
     gen.writeRaw("\n");
   }

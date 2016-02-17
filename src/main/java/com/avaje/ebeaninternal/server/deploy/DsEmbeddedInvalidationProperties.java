@@ -28,5 +28,4 @@ public final class DsEmbeddedInvalidationProperties extends DsEmbeddedInvalidati
     }
   }
 
-
 }

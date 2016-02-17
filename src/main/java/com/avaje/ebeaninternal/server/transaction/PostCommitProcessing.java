@@ -40,7 +40,7 @@ public final class PostCommitProcessing {
 
   private final DeleteByIdMap deleteByIdMap;
 
-  private final DocStoreEvent txnIndexMode;
+  private final DocStoreEvent txnDocStoreMode;
 
   private final int txnDocStoreBatchSize;
 
@@ -52,7 +52,7 @@ public final class PostCommitProcessing {
     this.clusterManager = clusterManager;
     this.manager = manager;
     this.serverName = manager.getServerName();
-    this.txnIndexMode = DocStoreEvent.IGNORE;
+    this.txnDocStoreMode = DocStoreEvent.IGNORE;
     this.txnDocStoreBatchSize = 0;
     this.event = event;
     this.deleteByIdMap = event.getDeleteByIdMap();
@@ -69,7 +69,7 @@ public final class PostCommitProcessing {
     this.clusterManager = clusterManager;
     this.manager = manager;
     this.serverName = manager.getServerName();
-    this.txnIndexMode = transaction.getDocStoreUpdateMode();
+    this.txnDocStoreMode = transaction.getDocStoreUpdateMode();
     this.txnDocStoreBatchSize = transaction.getDocStoreBulkBatchSize();
     this.event = transaction.getEvent();
     this.deleteByIdMap = event.getDeleteByIdMap();
@@ -112,7 +112,7 @@ public final class PostCommitProcessing {
       DocStoreUpdates docStoreUpdates = new DocStoreUpdates();
       event.addDocStoreUpdates(docStoreUpdates);
       if (deleteByIdMap != null) {
-        deleteByIdMap.addDocStoreUpdates(docStoreUpdates, txnIndexMode);
+        deleteByIdMap.addDocStoreUpdates(docStoreUpdates, txnDocStoreMode);
       }
 
       if (!docStoreUpdates.isEmpty()) {
@@ -126,7 +126,7 @@ public final class PostCommitProcessing {
    * Return true if updates to the document store occur for this transaction.
    */
   private boolean isDocStoreUpdate() {
-    return manager.isDocStoreActive() && (txnIndexMode == null || txnIndexMode != DocStoreEvent.IGNORE);
+    return manager.isDocStoreActive() && (txnDocStoreMode == null || txnDocStoreMode != DocStoreEvent.IGNORE);
   }
 
   public void notifyCluster() {

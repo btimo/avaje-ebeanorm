@@ -2233,7 +2233,7 @@ public class ServerConfig {
   /**
    * This is broken out for the same reason as above - preserve existing behaviour but let it be overridden.
    */
-  protected void loadElasticSettings(PropertiesWrapper p) {
+  protected void loadDocStoreSettings(PropertiesWrapper p) {
     docStoreConfig.loadSettings(p);
   }
 

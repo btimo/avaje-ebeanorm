@@ -35,8 +35,6 @@ import com.avaje.ebeaninternal.api.SpiQuery.Type;
 import com.avaje.ebeaninternal.api.SpiSqlQuery;
 import com.avaje.ebeaninternal.api.SpiTransaction;
 import com.avaje.ebeaninternal.api.TransactionEventTable;
-import com.avaje.ebeanservice.api.DocStoreIntegration;
-import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
 import com.avaje.ebeaninternal.server.autotune.AutoTuneService;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
@@ -68,6 +66,7 @@ import com.avaje.ebeaninternal.server.transaction.TransactionManager;
 import com.avaje.ebeaninternal.server.transaction.TransactionScopeManager;
 import com.avaje.ebeaninternal.util.ParamTypeHelper;
 import com.avaje.ebeaninternal.util.ParamTypeHelper.TypeInfo;
+import com.avaje.ebeanservice.api.DocStoreIntegration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,8 +138,6 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
   private final ReadAuditLogger readAuditLogger;
 
   private final CQueryEngine cqueryEngine;
-
-//  private final DocStoreUpdateProcessor docStoreUpdateProcessor;
 
   private final List<SpiServerPlugin> serverPlugins;
 

@@ -14,6 +14,8 @@ import com.avaje.ebeanservice.api.DocStoreDeleteEvent;
 import com.avaje.ebeanservice.api.DocStoreIndexEvent;
 import com.avaje.ebeanservice.api.DocStoreQueryUpdate;
 import com.avaje.ebeanservice.api.DocumentNotFoundException;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -68,30 +70,18 @@ public class ElasticDocumentStore implements DocumentStore {
     }
 
     List<Object> indexIds = group.getIndexIds();
-    Query<T> query = server.createQuery(desc.getBeanType());
-    query.where().idIn(indexIds);
-
-    indexUsingQuery(desc, query, txn);
+    if (!indexIds.isEmpty()) {
+      Query<T> query = server.createQuery(desc.getBeanType());
+      query.where().idIn(indexIds);
+      indexUsingQuery(desc, query, txn);
+    }
 
     Collection<ElasticUpdateGroup.Nested> values = group.getPathIds().values();
     for (ElasticUpdateGroup.Nested nested : values) {
-
-      // customer
-      String path = nested.getPath();
-
-      // customer Ids
-      List<Object> nestedIds = nested.getIds();
-
-      BeanDescriptor<?> targetDesc = desc.getBeanDescriptor(path);
-      Query<?> pathQuery = server.createQuery(targetDesc.getBeanType());
-      pathQuery.where().idIn(nestedIds);
-
-
-
+      NestedDocUpdate nestedDocUpdate = new NestedDocUpdate(server, desc, txn, nested);
+      nestedDocUpdate.process();
     }
-
   }
-
 
   @Override
   public <T> void indexByQuery(Query<T> query) {
@@ -162,7 +152,7 @@ public class ElasticDocumentStore implements DocumentStore {
     }
 
     try {
-      JsonParser parser = getSource(beanDescriptor.getElasticIndexType(), beanDescriptor.getElasticIndexName(), id);
+      JsonParser parser = getSource(beanDescriptor.getDocStoreIndexType(), beanDescriptor.getDocStoreIndexName(), id);
       T bean = beanDescriptor.jsonRead(parser, null, null);
       beanDescriptor.setBeanId(bean, id);
 

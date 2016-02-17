@@ -167,9 +167,9 @@ public class AnnotationClass extends AnnotationParser {
       descriptor.setDbComment(comment.value());
     }
 
-    DocStore elasticIndex = cls.getAnnotation(DocStore.class);
-    if (elasticIndex != null) {
-      descriptor.readElasticIndex(elasticIndex);
+    DocStore docStore = cls.getAnnotation(DocStore.class);
+    if (docStore != null) {
+      descriptor.readDocStore(docStore);
     }
 
     UpdateMode updateMode = cls.getAnnotation(UpdateMode.class);

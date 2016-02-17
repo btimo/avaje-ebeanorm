@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * Collect and organise elastic updates grouping by queueId.
  */
 public class ElasticUpdateGroups {
 

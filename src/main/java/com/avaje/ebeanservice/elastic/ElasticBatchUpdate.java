@@ -47,7 +47,7 @@ public class ElasticBatchUpdate {
   /**
    * Obtain a BulkElasticUpdate for writing bulk requests to.
    */
-  private DocStoreBulkUpdate obtain() throws IOException {
+  public DocStoreBulkUpdate obtain() throws IOException {
     if (count++ > batchSize) {
       flush();
     }

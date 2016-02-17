@@ -39,9 +39,9 @@ public abstract class DeployBeanPropertyAssoc<T> extends DeployBeanProperty {
 	 */
 	String mappedBy;
 
-	String elasticDoc;
+	String docStoreDoc;
 
-	boolean elasticFlatten;
+	boolean docStoreFlatten;
 
 	/**
 	 * Construct the property.
@@ -133,18 +133,18 @@ public abstract class DeployBeanPropertyAssoc<T> extends DeployBeanProperty {
 	}
 
 	/**
-	 * Set ElasticEmbedded deployment information.
+	 * Set DocStoreEmbedded deployment information.
 	 */
-	public void setElasticEmbedded(DocStoreEmbedded elasticEmbedded) {
-		elasticDoc = elasticEmbedded.doc();
-		elasticFlatten = elasticEmbedded.flatten();
+	public void setDocStoreEmbedded(DocStoreEmbedded embedded) {
+		docStoreDoc = embedded.doc();
+		docStoreFlatten = embedded.flatten();
 	}
 
-  public String getElasticDoc() {
-    return elasticDoc;
+  public String getDocStoreDoc() {
+    return docStoreDoc;
   }
 
-  public boolean isElasticFlatten() {
-    return elasticFlatten;
+  public boolean isDocStoreFlatten() {
+    return docStoreFlatten;
   }
 }

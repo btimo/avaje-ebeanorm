@@ -4,13 +4,14 @@ import com.avaje.ebean.DocStoreQueueEntry;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
- * Created by rob on 2/02/16.
+ * Groups index update events by queueId.
+ *
+ * Some nested path updates can overlap with index events so it is good to process these together as
+ * a group and check for these overlaps (and skip unnecessary work).
  */
 public class ElasticUpdateGroup {
 

@@ -16,7 +16,7 @@ import com.avaje.ebean.event.changelog.ChangeLogFilter;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.server.core.CacheOptions;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
-import com.avaje.ebeaninternal.server.deploy.BeanElasticType;
+import com.avaje.ebeaninternal.server.deploy.BeanDocStoreType;
 import com.avaje.ebeaninternal.server.deploy.ChainedBeanPersistController;
 import com.avaje.ebeaninternal.server.deploy.ChainedBeanPersistListener;
 import com.avaje.ebeaninternal.server.deploy.ChainedBeanPostLoad;
@@ -176,20 +176,20 @@ public class DeployBeanDescriptor<T> {
   /**
    * One of NONE, INDEX or EMBEDDED.
    */
-  private BeanElasticType elasticType = BeanElasticType.NONE;
+  private BeanDocStoreType docStoreBeanType = BeanDocStoreType.NONE;
 
-  private PathProperties elasticPathProperties;
+  private PathProperties docStorePathProperties;
 
-  private String elasticQueueId;
+  private String docStoreQueueId;
 
-  private String elasticIndexName;
+  private String docStoreIndexName;
 
-  private String elasticIndexType;
+  private String docStoreIndexType;
 
-  private DocStoreEvent elasticPersist;
-  private DocStoreEvent elasticInsert;
-  private DocStoreEvent elasticUpdate;
-  private DocStoreEvent elasticDelete;
+  private DocStoreEvent docStorePersist;
+  private DocStoreEvent docStoreInsert;
+  private DocStoreEvent docStoreUpdate;
+  private DocStoreEvent docStoreDelete;
 
   /**
    * Construct the BeanDescriptor.
@@ -260,21 +260,21 @@ public class DeployBeanDescriptor<T> {
   }
 
   /**
-   * Read the top level ElasticIndex deployment information.
+   * Read the top level doc store deployment information.
    */
-  public void readElasticIndex(DocStore elasticIndex) {
+  public void readDocStore(DocStore docStore) {
 
-    elasticType = BeanElasticType.INDEX;
-    elasticQueueId = elasticIndex.queueId();
-    elasticIndexName = elasticIndex.indexName();
-    elasticIndexType = elasticIndex.indexType();
-    elasticPersist = elasticIndex.persist();
-    elasticInsert = elasticIndex.insert();
-    elasticUpdate = elasticIndex.update();
-    elasticDelete = elasticIndex.delete();
-    String doc = elasticIndex.doc();
+    docStoreBeanType = BeanDocStoreType.INDEX;
+    docStoreQueueId = docStore.queueId();
+    docStoreIndexName = docStore.indexName();
+    docStoreIndexType = docStore.indexType();
+    docStorePersist = docStore.persist();
+    docStoreInsert = docStore.insert();
+    docStoreUpdate = docStore.update();
+    docStoreDelete = docStore.delete();
+    String doc = docStore.doc();
     if (doc != null && doc.length() > 0) {
-      elasticPathProperties = PathProperties.parse(doc);
+      docStorePathProperties = PathProperties.parse(doc);
     }
   }
 
@@ -976,53 +976,53 @@ public class DeployBeanDescriptor<T> {
     }
   }
 
-  public PathProperties getElasticPathProperties() {
-    return elasticPathProperties;
+  public PathProperties getDocStorePathProperties() {
+    return docStorePathProperties;
   }
 
-  public BeanElasticType getElasticType() {
-    return elasticType;
+  public BeanDocStoreType getDocStoreBeanType() {
+    return docStoreBeanType;
   }
 
-  public String getElasticQueueId() {
-    return elasticQueueId;
+  public String getDocStoreQueueId() {
+    return docStoreQueueId;
   }
 
-  public String getElasticIndexName() {
-    return elasticIndexName;
+  public String getDocStoreIndexName() {
+    return docStoreIndexName;
   }
 
-  public String getElasticIndexType() {
-    return elasticIndexType;
-  }
-
-  /**
-   * Return the ElasticSearch index behavior for bean inserts.
-   */
-  public DocStoreEvent getElasticInsertEvent() {
-    return getElasticIndexEvent(elasticInsert);
+  public String getDocStoreIndexType() {
+    return docStoreIndexType;
   }
 
   /**
-   * Return the ElasticSearch index behavior for bean updates.
+   * Return the DocStore index behavior for bean inserts.
    */
-  public DocStoreEvent getElasticUpdateEvent() {
-    return getElasticIndexEvent(elasticUpdate);
+  public DocStoreEvent getDocStoreInsertEvent() {
+    return getDocStoreIndexEvent(docStoreInsert);
   }
 
   /**
-   * Return the ElasticSearch index behavior for bean deletes.
+   * Return the DocStore index behavior for bean updates.
    */
-  public DocStoreEvent getElasticDeleteEvent() {
-    return getElasticIndexEvent(elasticDelete);
+  public DocStoreEvent getDocStoreUpdateEvent() {
+    return getDocStoreIndexEvent(docStoreUpdate);
   }
 
-  private DocStoreEvent getElasticIndexEvent(DocStoreEvent mostSpecific) {
-    if (elasticType == BeanElasticType.NONE) {
+  /**
+   * Return the DocStore index behavior for bean deletes.
+   */
+  public DocStoreEvent getDocStoreDeleteEvent() {
+    return getDocStoreIndexEvent(docStoreDelete);
+  }
+
+  private DocStoreEvent getDocStoreIndexEvent(DocStoreEvent mostSpecific) {
+    if (docStoreBeanType == BeanDocStoreType.NONE) {
       return DocStoreEvent.IGNORE;
     }
     if (mostSpecific != DocStoreEvent.DEFAULT) return mostSpecific;
-    if (elasticPersist != DocStoreEvent.DEFAULT) return elasticPersist;
+    if (docStorePersist != DocStoreEvent.DEFAULT) return docStorePersist;
     return serverConfig.getDocStoreConfig().getPersist();
   }
 }

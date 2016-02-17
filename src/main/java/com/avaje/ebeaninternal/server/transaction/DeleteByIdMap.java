@@ -77,7 +77,7 @@ public final class DeleteByIdMap {
   }
 
   /**
-   * Add to the ElasticSearch IndexUpdates.
+   * Add the deletes to the DocStoreUpdates.
    */
   public void addDocStoreUpdates(DocStoreUpdates docStoreUpdates, DocStoreEvent txnIndexMode) {
     for (BeanPersistIds deleteIds : beanMap.values()) {
@@ -86,7 +86,7 @@ public final class DeleteByIdMap {
       if (DocStoreEvent.IGNORE != docStoreEvent) {
         // Add to queue or bulk update entries
         boolean queue = (DocStoreEvent.QUEUE == docStoreEvent);
-        String queueId = desc.getElasticQueueId();
+        String queueId = desc.getDocStoreQueueId();
         List<Serializable> idValues = deleteIds.getDeleteIds();
         if (idValues != null) {
           for (int i = 0; i < idValues.size(); i++) {

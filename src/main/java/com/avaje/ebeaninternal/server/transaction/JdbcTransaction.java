@@ -144,12 +144,12 @@ public class JdbcTransaction implements SpiTransaction {
   protected TChangeLogHolder changeLogHolder;
 
   /**
-   * The mode for updating ElasticSearch indexes for this transaction.
+   * The mode for updating doc store indexes for this transaction.
    * Only set when you want to override the default behavior.
    */
-  protected DocStoreEvent indexUpdateMode;
+  protected DocStoreEvent docStoreUpdateMode;
 
-  protected int indexBulkBatchSize;
+  protected int docStoreBulkBatchSize;
 
   /**
    * Create a new JdbcTransaction.
@@ -283,21 +283,21 @@ public class JdbcTransaction implements SpiTransaction {
 
   @Override
   public int getDocStoreBulkBatchSize() {
-    return indexBulkBatchSize;
+    return docStoreBulkBatchSize;
   }
 
   @Override
-  public void setDocStoreUpdateBatchSize(int indexBulkBatchSize) {
-    this.indexBulkBatchSize = indexBulkBatchSize;
+  public void setDocStoreUpdateBatchSize(int docStoreBulkBatchSize) {
+    this.docStoreBulkBatchSize = docStoreBulkBatchSize;
   }
 
   public DocStoreEvent getDocStoreUpdateMode() {
-    return indexUpdateMode;
+    return docStoreUpdateMode;
   }
 
   @Override
-  public void setDocStoreUpdateMode(DocStoreEvent indexUpdateMode) {
-    this.indexUpdateMode = indexUpdateMode;
+  public void setDocStoreUpdateMode(DocStoreEvent docStoreUpdateMode) {
+    this.docStoreUpdateMode = docStoreUpdateMode;
   }
 
   @Override

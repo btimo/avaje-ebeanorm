@@ -525,7 +525,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
   private void registerBeanDescriptor(BeanDescriptor<?> desc) {
     descMap.put(desc.getBeanType().getName(), desc);
     if (desc.isDocStoreIndex()) {
-      descQueueMap.put(desc.getElasticQueueId(), desc);
+      descQueueMap.put(desc.getDocStoreQueueId(), desc);
     }
   }
 

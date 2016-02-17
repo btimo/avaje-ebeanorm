@@ -91,9 +91,9 @@ public class AnnotationFields extends AnnotationParser {
       prop.setEmbedded();
     }
 
-    DocStoreEmbedded elasticEmbedded = get(prop, DocStoreEmbedded.class);
-    if (elasticEmbedded != null) {
-      prop.setElasticEmbedded(elasticEmbedded);
+    DocStoreEmbedded docStoreEmbedded = get(prop, DocStoreEmbedded.class);
+    if (docStoreEmbedded != null) {
+      prop.setDocStoreEmbedded(docStoreEmbedded);
     }
 
     if (prop instanceof DeployBeanPropertyAssocOne<?>) {

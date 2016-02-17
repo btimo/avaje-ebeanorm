@@ -30,6 +30,7 @@ import com.avaje.ebean.event.readaudit.ReadEvent;
 import com.avaje.ebean.meta.MetaBeanInfo;
 import com.avaje.ebean.meta.MetaQueryPlanStatistic;
 import com.avaje.ebean.plugin.SpiBeanType;
+import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebean.text.json.JsonReadOptions;
 import com.avaje.ebeaninternal.api.CQueryPlanKey;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
@@ -81,6 +82,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -347,12 +349,12 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
 
   private final boolean cacheSharableBeans;
 
-  private final String elasticQueueId;
+  private final String docStoreQueueId;
 
   private final BeanDescriptorDraftHelp<T> draftHelp;
   private final BeanDescriptorCacheHelp<T> cacheHelp;
   private final BeanDescriptorJsonHelp<T> jsonHelp;
-  private final BeanDescriptorElasticHelp<T> elasticHelp;
+  private final BeanDescriptorElasticHelp<T> docStoreHelp;
 
   private final String defaultSelectClause;
   private final LinkedHashSet<String> defaultSelectClauseSet;
@@ -454,8 +456,8 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     this.jsonHelp = new BeanDescriptorJsonHelp<T>(this);
     this.draftHelp = new BeanDescriptorDraftHelp<T>(this);
 
-    this.elasticHelp = new BeanDescriptorElasticHelp<T>(this, deploy);
-    this.elasticQueueId = elasticHelp.getQueueId();
+    this.docStoreHelp = new BeanDescriptorElasticHelp<T>(this, deploy);
+    this.docStoreQueueId = docStoreHelp.getQueueId();
 
     // Check if there are no cascade save associated beans ( subject to change
     // in initialiseOther()). Note that if we are in an inheritance hierarchy 
@@ -670,7 +672,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
         namedUpdate.initialise(parser);
       }
     }
-    elasticHelp.registerPaths();
+    docStoreHelp.registerPaths();
   }
 
   public void initInheritInfo() {
@@ -884,41 +886,45 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    * Return true if this type maps to a root type of a doc store document (not embedded or ignored).
    */
   public boolean isDocStoreIndex() {
-    return elasticHelp.isDocStoreIndex();
+    return docStoreHelp.isDocStoreIndex();
   }
 
   /**
    * Return the queueId used to uniquely identify this type when queuing an index updateAdd.
    */
-  public String getElasticQueueId() {
-    return elasticQueueId;
+  public String getDocStoreQueueId() {
+    return docStoreQueueId;
   }
 
-  public String getElasticIndexType() {
-    return elasticHelp.getIndexType();
+  public String getDocStoreIndexType() {
+    return docStoreHelp.getIndexType();
   }
 
-  public String getElasticIndexName() {
-    return elasticHelp.getIndexName();
+  public String getDocStoreIndexName() {
+    return docStoreHelp.getIndexName();
   }
 
   /**
    * Register a doc store embedded/nested path that invalidates a document.
    */
   public void registerDocStoreInvalidationPath(String queueId, String path, Set<String> properties) {
-    elasticHelp.registerDocStoreInvalidationPath(queueId, path, properties);
+    docStoreHelp.registerDocStoreInvalidationPath(queueId, path, properties);
   }
 
   /**
    * Check if this update invalidates an embedded part of a doc store document.
    */
   public void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
-    elasticHelp.docStoreEmbeddedUpdate(request, docStoreUpdates);
+    docStoreHelp.docStoreEmbeddedUpdate(request, docStoreUpdates);
   }
 
   @Override
   public void docStoreApplyPath(Query<T> query) {
-    elasticHelp.docStoreApplyPath(query);
+    docStoreHelp.docStoreApplyPath(query);
+  }
+
+  public PathProperties docStoreNested(String path) {
+    return docStoreHelp.docStoreNested(path);
   }
 
   /**
@@ -926,24 +932,28 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    * given the transactions requested mode.
    */
   public DocStoreEvent getDocStoreEvent(PersistRequest.Type persistType, DocStoreEvent txnMode) {
-    return elasticHelp.getDocStoreEvent(persistType, txnMode);
+    return docStoreHelp.getDocStoreEvent(persistType, txnMode);
   }
 
   @Override
-  public void elasticIndex(Object idValue, T bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
-    elasticHelp.writeIndexJson(idValue, (EntityBean)bean, bulkUpdate);
+  public void docStoreIndex(Object idValue, T bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
+    docStoreHelp.writeIndexJson(idValue, (EntityBean)bean, bulkUpdate);
   }
 
-  public void elasticInsert(Object idValue, EntityBean bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
-    elasticHelp.insert(idValue, bean, bulkUpdate);
+  public void docStoreInsert(Object idValue, EntityBean bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
+    docStoreHelp.insert(idValue, bean, bulkUpdate);
   }
 
-  public void elasticUpdate(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
-    elasticHelp.update(idValue, persistRequest, bulkUpdate);
+  public void docStoreUpdate(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
+    docStoreHelp.update(idValue, persistRequest, bulkUpdate);
   }
 
-  public void elasticDeleteById(Object idValue, DocStoreBulkUpdate txn) throws IOException {
-    elasticHelp.deleteById(idValue, txn);
+  public void docStoreDeleteById(Object idValue, DocStoreBulkUpdate txn) throws IOException {
+    docStoreHelp.deleteById(idValue, txn);
+  }
+
+  public void docStoreUpdateEmbedded(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreBulkUpdate txn) throws IOException {
+    docStoreHelp.update(idValue, embeddedProperty, embeddedRawContent, txn);
   }
 
   public T publish(T draftBean, T liveBean) {

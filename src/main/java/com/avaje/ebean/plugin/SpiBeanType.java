@@ -82,11 +82,11 @@ public interface SpiBeanType<T> {
    * Store the bean in the elasticSearch index (assuming the bean is fetched with appropriate path properties
    * to match the expected document structure).
    */
-  void elasticIndex(Object idValue, T bean, DocStoreBulkUpdate docStoreBulkUpdate) throws IOException;
+  void docStoreIndex(Object idValue, T bean, DocStoreBulkUpdate docStoreBulkUpdate) throws IOException;
 
-  String getElasticIndexType();
+  String getDocStoreIndexType();
 
-  String getElasticIndexName();
+  String getDocStoreIndexName();
 
   T jsonRead(JsonParser parser, JsonReadOptions readOptions, Object objectMapper) throws IOException;
 }

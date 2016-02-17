@@ -35,7 +35,7 @@ public class ElasticQueryUpdate<T> implements DocStoreQueryUpdate<T> {
   @Override
   public void store(Object idValue, T bean) throws IOException {
     DocStoreBulkUpdate obtain = obtain();
-    beanType.elasticIndex(idValue, bean, obtain);
+    beanType.docStoreIndex(idValue, bean, obtain);
   }
 
   /**

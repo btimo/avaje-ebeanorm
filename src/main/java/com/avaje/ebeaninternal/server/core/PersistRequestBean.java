@@ -340,13 +340,13 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
 
     switch (type) {
       case INSERT:
-        beanDescriptor.elasticInsert(idValue, entityBean, txn);
+        beanDescriptor.docStoreInsert(idValue, entityBean, txn);
         break;
       case UPDATE:
-        beanDescriptor.elasticUpdate(idValue, this, txn);
+        beanDescriptor.docStoreUpdate(idValue, this, txn);
         break;
       case DELETE:
-        beanDescriptor.elasticDeleteById(idValue, txn);
+        beanDescriptor.docStoreDeleteById(idValue, txn);
         break;
       default:
         throw new IllegalStateException("Invalid type " + type);
@@ -359,13 +359,13 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
   public void addToQueue(DocStoreUpdates docStoreUpdates) {
     switch (type) {
       case INSERT:
-        docStoreUpdates.queueIndex(beanDescriptor.getElasticQueueId(), idValue);
+        docStoreUpdates.queueIndex(beanDescriptor.getDocStoreQueueId(), idValue);
         break;
       case UPDATE:
-        docStoreUpdates.queueIndex(beanDescriptor.getElasticQueueId(), idValue);
+        docStoreUpdates.queueIndex(beanDescriptor.getDocStoreQueueId(), idValue);
         break;
       case DELETE:
-        docStoreUpdates.queueDelete(beanDescriptor.getElasticQueueId(), idValue);
+        docStoreUpdates.queueDelete(beanDescriptor.getDocStoreQueueId(), idValue);
         break;
       default:
         throw new IllegalStateException("Invalid type " + type);
@@ -915,9 +915,9 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
       }
       case QUEUE: {
         if (type == Type.DELETE) {
-          docStoreUpdates.queueDelete(beanDescriptor.getElasticQueueId(), idValue);
+          docStoreUpdates.queueDelete(beanDescriptor.getDocStoreQueueId(), idValue);
         } else {
-          docStoreUpdates.queueIndex(beanDescriptor.getElasticQueueId(), idValue);
+          docStoreUpdates.queueIndex(beanDescriptor.getDocStoreQueueId(), idValue);
         }
       }
     }

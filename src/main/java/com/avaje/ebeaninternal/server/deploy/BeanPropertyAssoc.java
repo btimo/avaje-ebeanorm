@@ -60,9 +60,9 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 	
 	final String mappedBy;
 
-  final String elasticDoc;
+  final String docStoreDoc;
   
-  final boolean elasticFlatten;
+  final boolean docStoreFlatten;
 
 	final String extraWhere;
 
@@ -76,8 +76,8 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 		this.extraWhere = InternString.intern(deploy.getExtraWhere());
 		this.beanTable = deploy.getBeanTable();
 		this.mappedBy = InternString.intern(deploy.getMappedBy());
-    this.elasticDoc = deploy.getElasticDoc();
-    this.elasticFlatten = deploy.isElasticFlatten();
+    this.docStoreDoc = deploy.getDocStoreDoc();
+    this.docStoreFlatten = deploy.isDocStoreFlatten();
 
 		this.tableJoin = new TableJoin(deploy.getTableJoin());
 
@@ -225,21 +225,22 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
   /**
    * Return the elastic search doc for this embedded property.
    */
-  public String getElasticDoc() {
-    return elasticDoc;
+  public String getDocStoreDoc() {
+    return docStoreDoc;
   }
 
   /**
    * Determine if and how the associated bean is included in the doc store document.
    */
-  public void docStoreInclude(boolean includeByDefault, PathProperties pathProps) {
+  @Override
+  public void docStoreInclude(boolean includeByDefault, DocStructure docStructure) {
 
-    String embeddedDoc = getElasticDoc();
+    String embeddedDoc = getDocStoreDoc();
     if (embeddedDoc == null) {
       // not annotated so use include by default
       // which is *ToOne included and *ToMany excluded
       if (includeByDefault) {
-        docStoreIncludeByDefault(pathProps);
+        docStoreIncludeByDefault(docStructure.doc());
       }
     } else {
       // explicitly annotated to be included
@@ -247,7 +248,8 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
         embeddedDoc = "*";
       }
       // add in a nested way
-      pathProps.add(name, PathProperties.parse(embeddedDoc));
+      PathProperties embDoc = PathProperties.parse(embeddedDoc);
+      docStructure.addNested(name, embDoc);
     }
   }
 
@@ -261,8 +263,8 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
   /**
    * Return if this elastic search property should be 'flattened'.
    */
-  public boolean isElasticFlatten() {
-    return elasticFlatten;
+  public boolean isDocStoreFlatten() {
+    return docStoreFlatten;
   }
 
 	/**

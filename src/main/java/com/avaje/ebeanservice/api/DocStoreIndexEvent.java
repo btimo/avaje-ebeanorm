@@ -28,7 +28,7 @@ public class DocStoreIndexEvent implements DocStoreUpdateAware {
   @Override
   public void docStoreBulkUpdate(DocStoreBulkUpdate txn) throws IOException {
 
-    beanDescriptor.elasticInsert(idValue, bean, txn);
+    beanDescriptor.docStoreInsert(idValue, bean, txn);
   }
 
   /**
@@ -36,6 +36,6 @@ public class DocStoreIndexEvent implements DocStoreUpdateAware {
    */
   @Override
   public void addToQueue(DocStoreUpdates docStoreUpdates) {
-    docStoreUpdates.queueDelete(beanDescriptor.getElasticQueueId(), idValue);
+    docStoreUpdates.queueDelete(beanDescriptor.getDocStoreQueueId(), idValue);
   }
 }

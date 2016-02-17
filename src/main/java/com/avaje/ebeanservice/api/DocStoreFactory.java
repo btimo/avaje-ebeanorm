@@ -8,7 +8,7 @@ import com.avaje.ebean.plugin.SpiServer;
 public interface DocStoreFactory {
 
   /**
-   * Create and return all the DocStore integraion components.
+   * Create and return all the DocStore integration components.
    */
   DocStoreIntegration create(SpiServer server);
 
