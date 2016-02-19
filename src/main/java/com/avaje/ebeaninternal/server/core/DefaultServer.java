@@ -66,7 +66,7 @@ import com.avaje.ebeaninternal.server.transaction.TransactionManager;
 import com.avaje.ebeaninternal.server.transaction.TransactionScopeManager;
 import com.avaje.ebeaninternal.util.ParamTypeHelper;
 import com.avaje.ebeaninternal.util.ParamTypeHelper.TypeInfo;
-import com.avaje.ebeanservice.api.DocStoreIntegration;
+import com.avaje.ebeanservice.docstore.api.DocStoreIntegration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

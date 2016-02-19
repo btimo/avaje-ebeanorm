@@ -20,9 +20,9 @@ import com.avaje.ebeaninternal.server.deploy.BeanPropertyAssocMany;
 import com.avaje.ebeaninternal.server.persist.BatchControl;
 import com.avaje.ebeaninternal.server.persist.PersistExecute;
 import com.avaje.ebeaninternal.server.transaction.BeanPersistIdMap;
-import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
-import com.avaje.ebeanservice.api.DocStoreUpdates;
-import com.avaje.ebeanservice.api.DocStoreUpdateAware;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdateAware;
 
 import javax.persistence.OptimisticLockException;
 import javax.persistence.PersistenceException;
@@ -334,13 +334,13 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
   }
 
   /**
-   * Add appropriate JSON content for sending to the ElasticSearch Bulk API.
+   * Process the persist request updating the document store.
    */
-  public void docStoreBulkUpdate(DocStoreBulkUpdate txn) throws IOException {
+  public void docStoreUpdate(DocStoreUpdateContext txn) throws IOException {
 
     switch (type) {
       case INSERT:
-        beanDescriptor.docStoreInsert(idValue, entityBean, txn);
+        beanDescriptor.docStoreInsert(idValue, this, txn);
         break;
       case UPDATE:
         beanDescriptor.docStoreUpdate(idValue, this, txn);

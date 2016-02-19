@@ -25,8 +25,10 @@ import com.fasterxml.jackson.core.JsonFactory;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.ServiceLoader;
 
 /**
  * The configuration used for creating a EbeanServer.
@@ -2151,6 +2153,23 @@ public class ServerConfig {
    */
   public void setClassLoadConfig(ClassLoadConfig classLoadConfig) {
     this.classLoadConfig = classLoadConfig;
+  }
+
+  /**
+   * Return the service loader using the classLoader defined in ClassLoadConfig.
+   */
+  public <T> ServiceLoader<T> serviceLoad(Class<T> spiService) {
+
+    return ServiceLoader.load(spiService, classLoadConfig.getClassLoader());
+  }
+
+  /**
+   * Return the first service using the service loader (or null).
+   */
+  public <T> T service(Class<T> spiService) {
+    ServiceLoader<T> load = serviceLoad(spiService);
+    Iterator<T> serviceInstances = load.iterator();
+    return serviceInstances.hasNext() ? serviceInstances.next() : null;
   }
 
   /**

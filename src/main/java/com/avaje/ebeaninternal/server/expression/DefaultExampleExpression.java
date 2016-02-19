@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.expression;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import com.avaje.ebean.ExampleExpression;
@@ -92,6 +93,11 @@ public class DefaultExampleExpression implements SpiExpression, ExampleExpressio
     for (SpiExpression expression : source) {
       list.add(expression.copyForPlanKey());
     }
+  }
+
+  @Override
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+    throw new IllegalStateException("Not supported");
   }
 
   @Override

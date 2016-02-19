@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Specify the entity type maps to an document store (like ElasticSearch).
+ * Specify the entity type maps to a document store (like ElasticSearch).
  */
 @Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)

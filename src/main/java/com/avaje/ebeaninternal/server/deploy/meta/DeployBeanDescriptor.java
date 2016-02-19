@@ -16,7 +16,6 @@ import com.avaje.ebean.event.changelog.ChangeLogFilter;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.server.core.CacheOptions;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
-import com.avaje.ebeaninternal.server.deploy.BeanDocStoreType;
 import com.avaje.ebeaninternal.server.deploy.ChainedBeanPersistController;
 import com.avaje.ebeaninternal.server.deploy.ChainedBeanPersistListener;
 import com.avaje.ebeaninternal.server.deploy.ChainedBeanPostLoad;
@@ -176,7 +175,7 @@ public class DeployBeanDescriptor<T> {
   /**
    * One of NONE, INDEX or EMBEDDED.
    */
-  private BeanDocStoreType docStoreBeanType = BeanDocStoreType.NONE;
+  private boolean docStoreMapped;
 
   private PathProperties docStorePathProperties;
 
@@ -264,7 +263,7 @@ public class DeployBeanDescriptor<T> {
    */
   public void readDocStore(DocStore docStore) {
 
-    docStoreBeanType = BeanDocStoreType.INDEX;
+    docStoreMapped = true;
     docStoreQueueId = docStore.queueId();
     docStoreIndexName = docStore.indexName();
     docStoreIndexType = docStore.indexType();
@@ -980,8 +979,11 @@ public class DeployBeanDescriptor<T> {
     return docStorePathProperties;
   }
 
-  public BeanDocStoreType getDocStoreBeanType() {
-    return docStoreBeanType;
+  /**
+   * Return true if this type is mapped for a doc store.
+   */
+  public boolean isDocStoreMapped() {
+    return docStoreMapped;
   }
 
   public String getDocStoreQueueId() {
@@ -1018,7 +1020,7 @@ public class DeployBeanDescriptor<T> {
   }
 
   private DocStoreEvent getDocStoreIndexEvent(DocStoreEvent mostSpecific) {
-    if (docStoreBeanType == BeanDocStoreType.NONE) {
+    if (!docStoreMapped) {
       return DocStoreEvent.IGNORE;
     }
     if (mostSpecific != DocStoreEvent.DEFAULT) return mostSpecific;

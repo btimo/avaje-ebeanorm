@@ -1365,4 +1365,10 @@ public interface Query<T> extends Serializable {
    * </p>
    */
   Set<String> validate();
+
+  /**
+   * Return the query in JSON form for ElasticSearch doc store.
+   */
+  String asElasticQuery();
+
 }

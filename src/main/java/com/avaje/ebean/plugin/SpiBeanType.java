@@ -6,8 +6,9 @@ import com.avaje.ebean.event.BeanFindController;
 import com.avaje.ebean.event.BeanPersistController;
 import com.avaje.ebean.event.BeanPersistListener;
 import com.avaje.ebean.event.BeanQueryAdapter;
+import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebean.text.json.JsonReadOptions;
-import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
 import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
@@ -23,14 +24,36 @@ public interface SpiBeanType<T> {
   Class<T> getBeanType();
 
   /**
+   * Return the type bean for an OneToMany or ManyToOne or ManyToMany property.
+   */
+  SpiBeanType<?> getTypeAtPath(String propertyName);
+
+  /**
+   * Return the SpiProperty for a property to read values from a bean.
+   */
+  SpiProperty property(String propertyName);
+
+  SpiExpressionPath expressionPath(String path);
+
+  /**
    * Return true if the property is a valid known property or path for the given bean type.
    */
   boolean isValidExpression(String property);
 
-    /**
-     * Return the base table this bean type maps to.
-     */
+  /**
+   * Return the base table this bean type maps to.
+   */
   String getBaseTable();
+
+  /**
+   * Create a new instance of the bean.
+   */
+  T createBean();
+
+  /**
+   * Return the bean id. This is the same as getBeanId() but without the generic type.
+   */
+  Object beanId(Object bean);
 
   /**
    * Return the id value for the given bean.
@@ -73,20 +96,61 @@ public interface SpiBeanType<T> {
   String getSequenceName();
 
   /**
+   * Return true if this bean type has doc store backing.
+   */
+  boolean isDocStoreMapped();
+
+  /**
+   * Return the doc store queueId for this bean type.
+   */
+  String getDocStoreQueueId();
+
+  /**
+   * Return the doc store index type for this bean type.
+   */
+  String getDocStoreIndexType();
+
+  /**
+   * Return the doc store index name for this bean type.
+   */
+  String getDocStoreIndexName();
+
+  /**
    * Apply the appropriate fetch (PathProperties) to the query such that the query returns beans matching
    * the document store structure with the expected embedded properties.
    */
   void docStoreApplyPath(Query<T> spiQuery);
 
   /**
-   * Store the bean in the elasticSearch index (assuming the bean is fetched with appropriate path properties
-   * to match the expected document structure).
+   * Return the document structure of a nested/embedded document.
    */
-  void docStoreIndex(Object idValue, T bean, DocStoreBulkUpdate docStoreBulkUpdate) throws IOException;
+  PathProperties docStoreNested(String path);
 
-  String getDocStoreIndexType();
+  /**
+   * Store the bean in the doc store index.
+   * <p>
+   * This somewhat assumes the bean is fetched with appropriate path properties
+   * to match the expected document structure.
+   */
+  void docStoreIndex(Object idValue, T bean, DocStoreUpdateContext txn) throws IOException;
 
-  String getDocStoreIndexName();
+  /**
+   * Add a delete by Id to the doc store.
+   */
+  void docStoreDeleteById(Object idValue, DocStoreUpdateContext txn) throws IOException;
 
+  /**
+   * Add a embedded document update to the doc store.
+   *
+   * @param idValue            the Id value of the bean holding the embedded document
+   * @param embeddedProperty   the embedded property
+   * @param embeddedRawContent the content of the embedded document in JSON form
+   * @param txn                the doc store transaction to add the update to
+   */
+  void docStoreUpdateEmbedded(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException;
+
+  /**
+   * Read the JSON content returning the bean.
+   */
   T jsonRead(JsonParser parser, JsonReadOptions readOptions, Object objectMapper) throws IOException;
 }

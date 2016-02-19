@@ -30,6 +30,8 @@ import com.avaje.ebean.event.readaudit.ReadEvent;
 import com.avaje.ebean.meta.MetaBeanInfo;
 import com.avaje.ebean.meta.MetaQueryPlanStatistic;
 import com.avaje.ebean.plugin.SpiBeanType;
+import com.avaje.ebean.plugin.SpiExpressionPath;
+import com.avaje.ebean.plugin.SpiProperty;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebean.text.json.JsonReadOptions;
 import com.avaje.ebeaninternal.api.CQueryPlanKey;
@@ -65,8 +67,9 @@ import com.avaje.ebeaninternal.server.type.DataBind;
 import com.avaje.ebeaninternal.util.SortByClause;
 import com.avaje.ebeaninternal.util.SortByClause.Property;
 import com.avaje.ebeaninternal.util.SortByClauseParser;
-import com.avaje.ebeanservice.api.DocStoreBulkUpdate;
-import com.avaje.ebeanservice.api.DocStoreUpdates;
+import com.avaje.ebeanservice.docstore.api.DocStoreBeanAdapter;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
 import com.fasterxml.jackson.core.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -354,7 +357,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   private final BeanDescriptorDraftHelp<T> draftHelp;
   private final BeanDescriptorCacheHelp<T> cacheHelp;
   private final BeanDescriptorJsonHelp<T> jsonHelp;
-  private final BeanDescriptorElasticHelp<T> docStoreHelp;
+  private final DocStoreBeanAdapter<T> docStoreAdapter;
 
   private final String defaultSelectClause;
   private final LinkedHashSet<String> defaultSelectClauseSet;
@@ -456,8 +459,8 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     this.jsonHelp = new BeanDescriptorJsonHelp<T>(this);
     this.draftHelp = new BeanDescriptorDraftHelp<T>(this);
 
-    this.docStoreHelp = new BeanDescriptorElasticHelp<T>(this, deploy);
-    this.docStoreQueueId = docStoreHelp.getQueueId();
+    this.docStoreAdapter = owner.createDocStoreBeanAdapter(this, deploy);
+    this.docStoreQueueId = docStoreAdapter.getQueueId();
 
     // Check if there are no cascade save associated beans ( subject to change
     // in initialiseOther()). Note that if we are in an inheritance hierarchy 
@@ -672,7 +675,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
         namedUpdate.initialise(parser);
       }
     }
-    docStoreHelp.registerPaths();
+    docStoreAdapter.registerPaths();
   }
 
   public void initInheritInfo() {
@@ -885,46 +888,51 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   /**
    * Return true if this type maps to a root type of a doc store document (not embedded or ignored).
    */
-  public boolean isDocStoreIndex() {
-    return docStoreHelp.isDocStoreIndex();
+  @Override
+  public boolean isDocStoreMapped() {
+    return docStoreAdapter.isMapped();
   }
 
   /**
    * Return the queueId used to uniquely identify this type when queuing an index updateAdd.
    */
+  @Override
   public String getDocStoreQueueId() {
     return docStoreQueueId;
   }
 
+  @Override
   public String getDocStoreIndexType() {
-    return docStoreHelp.getIndexType();
+    return docStoreAdapter.getIndexType();
   }
 
+  @Override
   public String getDocStoreIndexName() {
-    return docStoreHelp.getIndexName();
+    return docStoreAdapter.getIndexName();
   }
 
   /**
    * Register a doc store embedded/nested path that invalidates a document.
    */
   public void registerDocStoreInvalidationPath(String queueId, String path, Set<String> properties) {
-    docStoreHelp.registerDocStoreInvalidationPath(queueId, path, properties);
+    docStoreAdapter.registerDocStoreInvalidationPath(queueId, path, properties);
   }
 
   /**
    * Check if this update invalidates an embedded part of a doc store document.
    */
   public void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
-    docStoreHelp.docStoreEmbeddedUpdate(request, docStoreUpdates);
+    docStoreAdapter.docStoreEmbeddedUpdate(request, docStoreUpdates);
   }
 
   @Override
   public void docStoreApplyPath(Query<T> query) {
-    docStoreHelp.docStoreApplyPath(query);
+    docStoreAdapter.docStoreApplyPath(query);
   }
 
+  @Override
   public PathProperties docStoreNested(String path) {
-    return docStoreHelp.docStoreNested(path);
+    return docStoreAdapter.docStoreNested(path);
   }
 
   /**
@@ -932,28 +940,28 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    * given the transactions requested mode.
    */
   public DocStoreEvent getDocStoreEvent(PersistRequest.Type persistType, DocStoreEvent txnMode) {
-    return docStoreHelp.getDocStoreEvent(persistType, txnMode);
+    return docStoreAdapter.getDocStoreEvent(persistType, txnMode);
+  }
+
+  public void docStoreDeleteById(Object idValue, DocStoreUpdateContext txn) throws IOException {
+    docStoreAdapter.deleteById(idValue, txn);
   }
 
   @Override
-  public void docStoreIndex(Object idValue, T bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
-    docStoreHelp.writeIndexJson(idValue, (EntityBean)bean, bulkUpdate);
+  public void docStoreIndex(Object idValue, T bean, DocStoreUpdateContext bulkUpdate) throws IOException {
+    docStoreAdapter.index(idValue, bean, bulkUpdate);
   }
 
-  public void docStoreInsert(Object idValue, EntityBean bean, DocStoreBulkUpdate bulkUpdate) throws IOException {
-    docStoreHelp.insert(idValue, bean, bulkUpdate);
+  public void docStoreInsert(Object idValue, PersistRequestBean<T> persistRequest, DocStoreUpdateContext bulkUpdate) throws IOException {
+    docStoreAdapter.insert(idValue, persistRequest, bulkUpdate);
   }
 
-  public void docStoreUpdate(Object idValue, PersistRequestBean<T> persistRequest, DocStoreBulkUpdate bulkUpdate) throws IOException {
-    docStoreHelp.update(idValue, persistRequest, bulkUpdate);
+  public void docStoreUpdate(Object idValue, PersistRequestBean<T> persistRequest, DocStoreUpdateContext bulkUpdate) throws IOException {
+    docStoreAdapter.update(idValue, persistRequest, bulkUpdate);
   }
 
-  public void docStoreDeleteById(Object idValue, DocStoreBulkUpdate txn) throws IOException {
-    docStoreHelp.deleteById(idValue, txn);
-  }
-
-  public void docStoreUpdateEmbedded(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreBulkUpdate txn) throws IOException {
-    docStoreHelp.update(idValue, embeddedProperty, embeddedRawContent, txn);
+  public void docStoreUpdateEmbedded(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException {
+    docStoreAdapter.update(idValue, embeddedProperty, embeddedRawContent, txn);
   }
 
   public T publish(T draftBean, T liveBean) {
@@ -1416,6 +1424,10 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     return namedUpdates.get(name);
   }
 
+  public T createBean() {
+    return (T)createEntityBean();
+  }
+
   /**
    * Creates a new EntityBean.
    */
@@ -1487,6 +1499,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     BeanDescriptor<?> targetDesc = assocProp.getTargetDescriptor();
 
     return targetDesc.getBeanPropertyFromPath(split[1]);
+  }
+
+  @Override
+  public SpiBeanType<?> getTypeAtPath(String path) {
+    return getBeanDescriptor(path);
   }
 
   /**
@@ -1601,6 +1618,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   @Override
+  public Object beanId(Object bean) {
+    return getId((EntityBean) bean);
+  }
+
+  @Override
   public Object getBeanId(T bean) {
     return getId((EntityBean) bean);
   }
@@ -1656,6 +1678,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    */
   public Object convertSetId(Object idValue, EntityBean bean) {
     return idBinder.convertSetId(idValue, bean);
+  }
+
+  @Override
+  public SpiProperty property(String propName) {
+    return getBeanProperty(propName);
   }
 
   /**
@@ -1763,6 +1790,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
       elCache.put(propName, elGetValue);
     }
     return elGetValue;
+  }
+
+  @Override
+  public SpiExpressionPath expressionPath(String path) {
+    return getElGetValue(path);
   }
 
   /**

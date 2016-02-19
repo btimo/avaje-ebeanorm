@@ -5,6 +5,7 @@ import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.config.EncryptKey;
 import com.avaje.ebean.config.dbplatform.DbEncryptFunction;
 import com.avaje.ebean.config.dbplatform.DbType;
+import com.avaje.ebean.plugin.SpiProperty;
 import com.avaje.ebean.text.StringParser;
 import com.avaje.ebeaninternal.server.core.InternString;
 import com.avaje.ebeaninternal.server.deploy.generatedproperty.GeneratedProperty;
@@ -42,7 +43,7 @@ import java.util.Map;
  * Description of a property of a bean. Includes its deployment information such
  * as database column mapping information.
  */
-public class BeanProperty implements ElPropertyValue {
+public class BeanProperty implements ElPropertyValue, SpiProperty {
 
   private static final Logger logger = LoggerFactory.getLogger(BeanProperty.class);
 
@@ -725,6 +726,10 @@ public class BeanProperty implements ElPropertyValue {
     throw new RuntimeException("Expected to be called only on BeanPropertyCompoundScalar");
   }
 
+  public Object getVal(Object bean) {
+    return getValue((EntityBean)bean);
+  }
+
   /**
    * Return the value of the property method.
    */
@@ -753,6 +758,14 @@ public class BeanProperty implements ElPropertyValue {
       return null;
     }
     return convertToLogicalType(value);
+  }
+
+  @Override
+  public void set(Object bean, Object value) {
+
+    // convert for Enums etc
+    Object logicalVal = convertToLogicalType(value);
+    elSetValue((EntityBean) bean, logicalVal, true);
   }
 
   public void elSetValue(EntityBean bean, Object value, boolean populate) {

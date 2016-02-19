@@ -5,6 +5,9 @@ import com.avaje.ebeaninternal.api.HashQueryPlanBuilder;
 import com.avaje.ebeaninternal.api.SpiExpression;
 import com.avaje.ebeaninternal.api.SpiExpressionRequest;
 import com.avaje.ebeaninternal.server.el.ElPropertyValue;
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import java.io.IOException;
 
 public class SimpleExpression extends AbstractExpression {
 
@@ -18,6 +21,20 @@ public class SimpleExpression extends AbstractExpression {
     super(propertyName);
     this.type = type;
     this.value = value;
+  }
+
+  @Override
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+    JsonGenerator gen = context.json();
+    if (type == Op.EQ) {
+      gen.writeStartObject();
+      gen.writeFieldName("term");
+      gen.writeStartObject();
+      gen.writeFieldName(propName);
+      gen.writeObject(value);
+      gen.writeEndObject();
+      gen.writeEndObject();
+    }
   }
 
   public final String getPropName() {

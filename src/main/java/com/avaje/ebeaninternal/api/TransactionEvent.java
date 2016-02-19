@@ -1,6 +1,6 @@
 package com.avaje.ebeaninternal.api;
 
-import com.avaje.ebeanservice.api.DocStoreUpdates;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.transaction.DeleteByIdMap;

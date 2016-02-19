@@ -17,8 +17,8 @@ import com.avaje.ebeaninternal.server.cluster.ClusterManager;
 import com.avaje.ebeaninternal.server.core.BootupClasses;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;
 import com.avaje.ebeaninternal.server.lib.sql.DataSourcePool;
-import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
-import com.avaje.ebeanservice.api.DocStoreUpdates;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdateProcessor;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

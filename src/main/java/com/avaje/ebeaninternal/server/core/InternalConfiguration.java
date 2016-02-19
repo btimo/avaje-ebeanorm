@@ -47,10 +47,10 @@ import com.avaje.ebeaninternal.server.transaction.TransactionManager;
 import com.avaje.ebeaninternal.server.transaction.TransactionScopeManager;
 import com.avaje.ebeaninternal.server.type.DefaultTypeManager;
 import com.avaje.ebeaninternal.server.type.TypeManager;
-import com.avaje.ebeanservice.api.DocStoreFactory;
-import com.avaje.ebeanservice.api.DocStoreIntegration;
-import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
-import com.avaje.ebeanservice.elastic.ElasticDocStoreFactory;
+import com.avaje.ebeanservice.docstore.api.DocStoreFactory;
+import com.avaje.ebeanservice.docstore.api.DocStoreIntegration;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdateProcessor;
+import com.avaje.ebeanservice.docstore.none.NoneDocStoreFactory;
 import com.fasterxml.jackson.core.JsonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,7 +101,7 @@ public class InternalConfiguration {
 
   private final JsonFactory jsonFactory;
 
-  private DocStoreFactory docStoreFactory = new ElasticDocStoreFactory();
+  private final DocStoreFactory docStoreFactory;
 
   /**
    * List of plugins (that ultimately the DefaultServer configures late in construction).
@@ -112,6 +112,7 @@ public class InternalConfiguration {
                                ServerCacheManager cacheManager, SpiBackgroundExecutor backgroundExecutor,
                                ServerConfig serverConfig, BootupClasses bootupClasses) {
 
+    this.docStoreFactory = initDocStoreFactory(serverConfig.service(DocStoreFactory.class));
     this.jsonFactory = serverConfig.getJsonFactory();
     this.xmlConfig = xmlConfig;
     this.clusterManager = clusterManager;
@@ -137,6 +138,17 @@ public class InternalConfiguration {
 
     this.binder = getBinder(typeManager, databasePlatform);
     this.cQueryEngine = new CQueryEngine(databasePlatform, binder, asOfTableMapping, serverConfig.getAsOfSysPeriod(), draftTableMap);
+  }
+
+  private DocStoreFactory initDocStoreFactory(DocStoreFactory service) {
+    return service == null ? new NoneDocStoreFactory() : service;
+  }
+
+  /**
+   * Return the doc store factory.
+   */
+  public DocStoreFactory getDocStoreFactory() {
+    return docStoreFactory;
   }
 
   /**

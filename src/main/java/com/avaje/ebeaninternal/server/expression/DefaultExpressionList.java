@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.expression;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,6 +18,7 @@ import com.avaje.ebeaninternal.api.SpiExpressionList;
 import com.avaje.ebeaninternal.api.SpiExpressionRequest;
 import com.avaje.ebeaninternal.api.SpiExpressionValidation;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 /**
  * Default implementation of ExpressionList.
@@ -58,6 +60,23 @@ public class DefaultExpressionList<T> implements SpiExpressionList<T> {
 
   private DefaultExpressionList() {
     this(null, null, null, new ArrayList<SpiExpression>());
+  }
+
+  @Override
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+
+    JsonGenerator json = context.json();
+    json.writeStartObject();
+    json.writeFieldName("bool");
+    json.writeStartObject();
+    json.writeFieldName("must");
+    json.writeStartArray();
+    for (int i = 0; i < list.size(); i++) {
+      list.get(i).writeElastic(context);
+    }
+    json.writeEndArray();
+    json.writeEndObject();
+    json.writeEndObject();
   }
 
   @Override

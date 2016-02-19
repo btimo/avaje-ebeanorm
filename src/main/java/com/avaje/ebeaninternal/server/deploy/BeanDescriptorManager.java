@@ -52,6 +52,8 @@ import com.avaje.ebeaninternal.server.properties.BeanPropertiesReader;
 import com.avaje.ebeaninternal.server.properties.BeanPropertyInfo;
 import com.avaje.ebeaninternal.server.properties.BeanPropertyInfoFactory;
 import com.avaje.ebeaninternal.server.properties.EnhanceBeanPropertyInfoFactory;
+import com.avaje.ebeanservice.docstore.api.DocStoreBeanAdapter;
+import com.avaje.ebeanservice.docstore.api.DocStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,6 +121,8 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private final ChangeLogPrepare changeLogPrepare;
 
+  private final DocStoreFactory docStoreFactory;
+
   private int enhancedClassCount;
   
   private final boolean updateChangesOnly;
@@ -185,6 +189,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
     this.serverConfig = config.getServerConfig();
     this.serverName = InternString.intern(serverConfig.getName());
     this.cacheManager = config.getCacheManager();
+    this.docStoreFactory = config.getDocStoreFactory();
     this.xmlConfig = config.getXmlConfig();
     this.dbSequenceBatchSize = serverConfig.getDatabaseSequenceBatchSize();
     this.backgroundExecutor = config.getBackgroundExecutor();
@@ -246,6 +251,11 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
   @Override
   public ServerConfig getServerConfig() {
     return serverConfig;
+  }
+
+  @Override
+  public <T> DocStoreBeanAdapter<T> createDocStoreBeanAdapter(BeanDescriptor descriptor, DeployBeanDescriptor<T> deploy) {
+    return docStoreFactory.createAdapter(descriptor, deploy);
   }
 
   public BeanDescriptor<?> getBeanDescriptorByQueueId(String queueId) {
@@ -524,7 +534,7 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
 
   private void registerBeanDescriptor(BeanDescriptor<?> desc) {
     descMap.put(desc.getBeanType().getName(), desc);
-    if (desc.isDocStoreIndex()) {
+    if (desc.isDocStoreMapped()) {
       descQueueMap.put(desc.getDocStoreQueueId(), desc);
     }
   }

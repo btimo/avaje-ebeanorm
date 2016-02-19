@@ -40,6 +40,11 @@ public interface DocumentStore {
   <T> T getById(Class<T> beanType, Object id);
 
   /**
+   * Execute the query against the document store returning the list.
+   */
+  <T> List<T> findList(Query<T> query);
+
+  /**
    * Process the queue entries.
    */
   void process(List<DocStoreQueueEntry> queueEntries) throws IOException;

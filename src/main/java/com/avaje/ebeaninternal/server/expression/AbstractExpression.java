@@ -9,6 +9,8 @@ import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.el.ElPropertyDeploy;
 import com.avaje.ebeaninternal.server.el.ElPropertyValue;
 
+import java.io.IOException;
+
 /**
  * Base class for simple expressions.
  */
@@ -20,6 +22,11 @@ public abstract class AbstractExpression implements SpiExpression {
 
   protected AbstractExpression(String propName) {
     this.propName = propName;
+  }
+
+  @Override
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+    throw new IllegalStateException("Not supported");
   }
 
   @Override

@@ -11,6 +11,7 @@ import com.avaje.ebean.event.BeanQueryRequest;
 import com.avaje.ebean.event.readaudit.ReadEvent;
 import com.avaje.ebean.plugin.SpiBeanType;
 import com.avaje.ebean.text.PathProperties;
+import com.avaje.ebean.text.json.JsonContext;
 import com.avaje.ebeaninternal.api.BindParams;
 import com.avaje.ebeaninternal.api.HashQuery;
 import com.avaje.ebeaninternal.api.ManyWhereJoins;
@@ -26,11 +27,15 @@ import com.avaje.ebeaninternal.server.deploy.BeanPropertyAssocMany;
 import com.avaje.ebeaninternal.server.deploy.DRawSqlSelect;
 import com.avaje.ebeaninternal.server.deploy.DeployNamedQuery;
 import com.avaje.ebeaninternal.server.deploy.TableJoin;
+import com.avaje.ebeaninternal.server.expression.ElasticExpressionContext;
 import com.avaje.ebeaninternal.server.expression.SimpleExpression;
 import com.avaje.ebeaninternal.server.query.CancelableQuery;
 import com.avaje.ebeaninternal.server.expression.DefaultExpressionList;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 import javax.persistence.PersistenceException;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -281,6 +286,62 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
         setQuery(namedQuery.getQuery());
       }
     }
+  }
+
+  public String asElasticQuery() {
+
+    StringWriter sw = new StringWriter(200);
+    JsonContext json = server.json();
+
+    JsonGenerator generator = json.createGenerator(sw);
+
+    SpiBeanType<T> beanType = server.getPluginApi().getBeanType(this.beanType);
+    ElasticExpressionContext context = new ElasticExpressionContext(generator, beanType);
+
+    try {
+      writeElastic(context);
+      context.flush();
+      return sw.toString();
+
+    } catch (IOException e) {
+      throw new PersistenceIOException(e);
+    }
+  }
+
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+
+    JsonGenerator json = context.json();
+
+    json.writeStartObject();
+
+    if (firstRow > 0) {
+      json.writeFieldName("from");
+      json.writeNumber(firstRow);
+    }
+
+    if (maxRows > 0) {
+      json.writeFieldName("size");
+      json.writeNumber(maxRows);
+    }
+
+    detail.writeElastic(context);
+
+    json.writeFieldName("query");
+    json.writeStartObject();
+
+    json.writeFieldName("filtered");
+    json.writeStartObject();
+
+    json.writeFieldName("filter");
+    //json.writeStartObject();
+
+    whereExpressions.writeElastic(context);
+    //json.writeEndObject();
+
+    json.writeEndObject();
+    json.writeEndObject();
+    json.writeEndObject();
+
   }
 
   @Override

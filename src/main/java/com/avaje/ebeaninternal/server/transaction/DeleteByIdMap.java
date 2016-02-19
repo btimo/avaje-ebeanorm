@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.avaje.ebean.annotation.DocStoreEvent;
-import com.avaje.ebeanservice.api.DocStoreDeleteEvent;
-import com.avaje.ebeanservice.api.DocStoreUpdates;
+import com.avaje.ebeanservice.docstore.api.support.DocStoreDeleteEvent;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
 
 /**
  * Beans deleted by Id used for updating L2 Cache.

@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.expression;
 
+import java.io.IOException;
 import java.util.List;
 
 import com.avaje.ebean.event.BeanQueryRequest;
@@ -35,6 +36,11 @@ public class ExistsExpression implements SpiExpression {
     this.sql = sql;
     this.bindParams = bindParams;
     this.subQuery = null;
+  }
+
+  @Override
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+    throw new IllegalStateException("Not supported");
   }
 
   @Override

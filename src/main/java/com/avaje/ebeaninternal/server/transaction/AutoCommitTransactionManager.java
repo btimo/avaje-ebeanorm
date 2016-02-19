@@ -3,7 +3,7 @@ package com.avaje.ebeaninternal.server.transaction;
 import com.avaje.ebean.BackgroundExecutor;
 import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebeaninternal.api.SpiTransaction;
-import com.avaje.ebeanservice.api.DocStoreUpdateProcessor;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdateProcessor;
 import com.avaje.ebeaninternal.server.cluster.ClusterManager;
 import com.avaje.ebeaninternal.server.core.BootupClasses;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptorManager;

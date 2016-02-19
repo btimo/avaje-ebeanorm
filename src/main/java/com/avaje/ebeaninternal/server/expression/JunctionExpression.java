@@ -1,5 +1,6 @@
 package com.avaje.ebeaninternal.server.expression;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
@@ -84,6 +85,11 @@ abstract class JunctionExpression<T> implements Junction<T>, SpiExpression, Expr
     this.disjunction = disjunction;
     this.joinType = joinType;
     this.exprList = exprList;
+  }
+
+  @Override
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+    throw new IllegalStateException("Not supported");
   }
 
   @Override

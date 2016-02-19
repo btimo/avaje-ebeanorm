@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlType;
 
 import com.avaje.ebean.annotation.ChangeLog;
 import com.avaje.ebean.annotation.DocStore;
+import com.avaje.ebean.annotation.DocStoreEmbedded;
 import com.avaje.ebean.annotation.Formula;
 import com.avaje.ebean.annotation.WhenCreated;
 import com.avaje.ebean.annotation.Where;
@@ -85,6 +86,7 @@ public class Order implements Serializable {
 
   Date shipDate;
 
+  @DocStoreEmbedded(doc = "id,name")
   @NotNull
   @ManyToOne
   @JoinColumn(name = "kcustomer_id")
