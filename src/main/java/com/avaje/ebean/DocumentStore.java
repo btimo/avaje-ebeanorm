@@ -45,6 +45,15 @@ public interface DocumentStore {
   <T> List<T> findList(Query<T> query);
 
   /**
+   * Execute the query against the document store with the expectation of a large set of results
+   * that are processed in a scrolling resultSet fashion.
+   * <p>
+   *   For example, with the ElasticSearch doc store this uses SCROLL.
+   * </p>
+   */
+  <T> void findEach(Query<T> query, QueryEachConsumer<T> consumer);
+
+  /**
    * Process the queue entries.
    */
   void process(List<DocStoreQueueEntry> queueEntries) throws IOException;

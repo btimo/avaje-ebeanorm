@@ -14,11 +14,11 @@ public class NoneDocStoreUpdateProcessor implements DocStoreUpdateProcessor {
 
   @Override
   public <T> DocStoreQueryUpdate<T> createQueryUpdate(SpiBeanType<T> beanType, int bulkBatchSize) throws IOException {
-    throw NoneDocStore.ERR;
+    throw NoneDocStore.implementationNotInClassPath();
   }
 
   @Override
   public void process(DocStoreUpdates docStoreUpdates, int bulkBatchSize) {
-    throw NoneDocStore.ERR;
+    throw NoneDocStore.implementationNotInClassPath();
   }
 }

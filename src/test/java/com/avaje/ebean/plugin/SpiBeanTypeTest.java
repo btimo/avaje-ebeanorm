@@ -31,28 +31,28 @@ public class SpiBeanTypeTest {
   @Test
   public void getTypeAtPath_when_ManyToOne() throws Exception {
     SpiBeanType<Order> orderType = beanType(Order.class);
-    SpiBeanType<?> customerType = orderType.getTypeAtPath("customer");
+    SpiBeanType<?> customerType = orderType.getBeanTypeAtPath("customer");
     assertThat(customerType.getBeanType()).isEqualTo(Customer.class);
   }
 
   @Test
   public void getTypeAtPath_when_OneToMany() throws Exception {
     SpiBeanType<Order> orderType = beanType(Order.class);
-    SpiBeanType<?> detailsType = orderType.getTypeAtPath("details");
+    SpiBeanType<?> detailsType = orderType.getBeanTypeAtPath("details");
     assertThat(detailsType.getBeanType()).isEqualTo(OrderDetail.class);
   }
 
   @Test
   public void getTypeAtPath_when_nested() throws Exception {
     SpiBeanType<Order> orderType = beanType(Order.class);
-    SpiBeanType<?> productType = orderType.getTypeAtPath("details.product");
+    SpiBeanType<?> productType = orderType.getBeanTypeAtPath("details.product");
     assertThat(productType.getBeanType()).isEqualTo(Product.class);
   }
 
   @Test(expected = RuntimeException.class)
   public void getTypeAtPath_when_simpleType() throws Exception {
 
-    beanType(Order.class).getTypeAtPath("status");
+    beanType(Order.class).getBeanTypeAtPath("status");
   }
 
   @Test

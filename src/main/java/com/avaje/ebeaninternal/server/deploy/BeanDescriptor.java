@@ -1502,7 +1502,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   @Override
-  public SpiBeanType<?> getTypeAtPath(String path) {
+  public SpiBeanType<?> getBeanTypeAtPath(String path) {
     return getBeanDescriptor(path);
   }
 

@@ -19,26 +19,26 @@ public class NoneDocStoreBeanAdapter<T> extends DocStoreBeanBaseAdapter<T> {
 
   @Override
   public void deleteById(Object idValue, DocStoreUpdateContext txn) throws IOException {
-    throw NoneDocStore.ERR;
+    throw NoneDocStore.implementationNotInClassPath();
   }
 
   @Override
   public void index(Object idValue, T entityBean, DocStoreUpdateContext txn) throws IOException {
-    throw NoneDocStore.ERR;
+    throw NoneDocStore.implementationNotInClassPath();
   }
 
   @Override
   public void insert(Object idValue, PersistRequestBean<T> persistRequest, DocStoreUpdateContext txn) throws IOException {
-    throw NoneDocStore.ERR;
+    throw NoneDocStore.implementationNotInClassPath();
   }
 
   @Override
   public void update(Object idValue, PersistRequestBean<T> persistRequest, DocStoreUpdateContext txn) throws IOException {
-    throw NoneDocStore.ERR;
+    throw NoneDocStore.implementationNotInClassPath();
   }
 
   @Override
   public void update(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException {
-    throw NoneDocStore.ERR;
+    throw NoneDocStore.implementationNotInClassPath();
   }
 }

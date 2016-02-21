@@ -26,13 +26,19 @@ public interface SpiBeanType<T> {
   /**
    * Return the type bean for an OneToMany or ManyToOne or ManyToMany property.
    */
-  SpiBeanType<?> getTypeAtPath(String propertyName);
+  SpiBeanType<?> getBeanTypeAtPath(String propertyName);
 
   /**
    * Return the SpiProperty for a property to read values from a bean.
    */
   SpiProperty property(String propertyName);
 
+  /**
+   * Return the SpiExpressionPath for a given property path.
+   * <p>
+   * This can return a property or nested property path.
+   * </p>
+   */
   SpiExpressionPath expressionPath(String path);
 
   /**
