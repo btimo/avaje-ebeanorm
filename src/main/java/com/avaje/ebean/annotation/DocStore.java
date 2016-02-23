@@ -28,6 +28,21 @@ public @interface DocStore {
   String indexType() default "";
 
   /**
+   * The number of shards this index should use.
+   */
+  int shards() default 0;
+
+  /**
+   * The number of replicas this index should use.
+   */
+  int replicas() default 0;
+
+  /**
+   * Additional mapping that can be defined on the properties.
+   */
+  DocMapping[] mapping() default {};
+
+  /**
    * Specify the behavior when bean Insert, Update, Delete events occur.
    */
   DocStoreEvent persist() default DocStoreEvent.DEFAULT;

@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import javax.persistence.PersistenceException;
 
 import com.avaje.ebean.text.PathProperties;
+import com.avaje.ebeaninternal.server.query.SplitName;
+import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
+import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyMapping;
+import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,8 +66,6 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 
   final String docStoreDoc;
   
-  final boolean docStoreFlatten;
-
 	final String extraWhere;
 
 	boolean saveRecurseSkippable;
@@ -77,8 +79,6 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
 		this.beanTable = deploy.getBeanTable();
 		this.mappedBy = InternString.intern(deploy.getMappedBy());
     this.docStoreDoc = deploy.getDocStoreDoc();
-    this.docStoreFlatten = deploy.isDocStoreFlatten();
-
 		this.tableJoin = new TableJoin(deploy.getTableJoin());
 
 		this.targetType = deploy.getTargetType();
@@ -260,11 +260,25 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
     pathProps.addToPath(null, name);
   }
 
-  /**
-   * Return if this elastic search property should be 'flattened'.
-   */
-  public boolean isDocStoreFlatten() {
-    return docStoreFlatten;
+  @Override
+  public void docStoreMapping(DocMappingBuilder mapping, String prefix) {
+
+    if (mapping.includesPath(prefix, name)) {
+      String fullName = SplitName.add(prefix, name);
+
+      boolean isMany = (this instanceof BeanPropertyAssocMany<?>);
+
+      DocPropertyType type = isMany ? DocPropertyType.LIST : DocPropertyType.OBJECT;
+      DocPropertyMapping nested = new DocPropertyMapping(name, type);
+
+      mapping.push(nested);
+      targetDescriptor.docStoreMapping(mapping, fullName);
+      mapping.pop();
+
+      if (!nested.getChildren().isEmpty()) {
+        mapping.add(nested);
+      }
+    }
   }
 
 	/**

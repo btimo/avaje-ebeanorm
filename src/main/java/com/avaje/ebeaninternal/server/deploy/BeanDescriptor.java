@@ -29,6 +29,8 @@ import com.avaje.ebean.event.readaudit.ReadAuditPrepare;
 import com.avaje.ebean.event.readaudit.ReadEvent;
 import com.avaje.ebean.meta.MetaBeanInfo;
 import com.avaje.ebean.meta.MetaQueryPlanStatistic;
+import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
+import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
 import com.avaje.ebean.plugin.SpiBeanType;
 import com.avaje.ebean.plugin.SpiExpressionPath;
 import com.avaje.ebean.plugin.SpiProperty;
@@ -909,6 +911,26 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   @Override
   public String getDocStoreIndexName() {
     return docStoreAdapter.getIndexName();
+  }
+
+  @Override
+  public DocumentMapping getDocMapping() {
+    return docStoreAdapter.createDocMapping();
+  }
+
+  /**
+   * Build the Document mapping recursively with the given prefix relative to the root of the document.
+   */
+  public void docStoreMapping(DocMappingBuilder mapping, String prefix) {
+
+    if (prefix != null && idProperty != null) {
+      // id property not included in the
+      idProperty.docStoreMapping(mapping, prefix);
+    }
+
+    for (BeanProperty prop: propertiesNonTransient) {
+      prop.docStoreMapping(mapping, prefix);
+    }
   }
 
   /**
@@ -2255,6 +2277,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    */
   public TableJoin[] tableJoins() {
     return derivedTableJoins;
+  }
+
+  @Override
+  public Collection<? extends SpiProperty> allProperties() {
+    return propertiesAll();
   }
 
   /**

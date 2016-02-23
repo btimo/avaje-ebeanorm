@@ -333,7 +333,7 @@ public class InternalConfiguration {
    * Create the DocStoreIntegration components for the given server.
    */
   public DocStoreIntegration createDocStoreIntegration(SpiServer server) {
-    return docStoreFactory.create(server);
+    return plugin(docStoreFactory.create(server));
   }
 
   /**

@@ -9,9 +9,11 @@ import com.avaje.ebean.event.BeanQueryAdapter;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebean.text.json.JsonReadOptions;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
+import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
 import com.fasterxml.jackson.core.JsonParser;
 
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Information and methods on BeanDescriptors made available to plugins.
@@ -27,6 +29,11 @@ public interface SpiBeanType<T> {
    * Return the type bean for an OneToMany or ManyToOne or ManyToMany property.
    */
   SpiBeanType<?> getBeanTypeAtPath(String propertyName);
+
+  /**
+   * Return all the properties for this bean type.
+   */
+  Collection<? extends SpiProperty> allProperties();
 
   /**
    * Return the SpiProperty for a property to read values from a bean.
@@ -105,6 +112,15 @@ public interface SpiBeanType<T> {
    * Return true if this bean type has doc store backing.
    */
   boolean isDocStoreMapped();
+
+  /**
+   * Return the DocumentMapping for this bean type.
+   * <p>
+   * This is the document structure and mapping options for how this bean type is mapped
+   * for the document store.
+   * </p>
+   */
+  DocumentMapping getDocMapping();
 
   /**
    * Return the doc store queueId for this bean type.

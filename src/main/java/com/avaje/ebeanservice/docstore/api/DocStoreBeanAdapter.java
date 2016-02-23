@@ -5,6 +5,7 @@ import com.avaje.ebean.annotation.DocStoreEvent;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.server.core.PersistRequest;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
+import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
 
 import java.io.IOException;
 import java.util.Set;
@@ -34,6 +35,11 @@ public interface DocStoreBeanAdapter<T> {
    * @param docStoreUpdates Invalidation events are registered to this docStoreUpdates
    */
   void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates);
+
+  /**
+   * Return the document structure as PathProperties.
+   */
+  PathProperties docStorePaths();
 
   /**
    * Return the nested document for the given path.
@@ -103,4 +109,9 @@ public interface DocStoreBeanAdapter<T> {
    * @param txn                the doc store transaction to use to process the update
    */
   void update(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException;
+
+  /**
+   * Create the document mapping.
+   */
+  DocumentMapping createDocMapping();
 }

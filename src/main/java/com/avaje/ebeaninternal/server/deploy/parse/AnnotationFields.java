@@ -184,6 +184,19 @@ public class AnnotationFields extends AnnotationParser {
       }
     }
 
+    DocProperty docProperty = get(prop, DocProperty.class);
+    if (docProperty != null) {
+      prop.setDocProperty(docProperty);
+    }
+    DocSortable docSortable = get(prop, DocSortable.class);
+    if (docSortable != null) {
+      prop.setDocSortable(docSortable);
+    }
+    DocCode docCode = get(prop, DocCode.class);
+    if (docCode != null) {
+      prop.setDocCode(docCode);
+    }
+
     if (get(prop, DbHstore.class) != null) {
       util.setDbHstore(prop);
     }

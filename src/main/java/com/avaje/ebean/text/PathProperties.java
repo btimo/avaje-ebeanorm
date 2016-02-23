@@ -173,6 +173,40 @@ public class PathProperties {
     return rootProps;
   }
 
+  /**
+   * Return true if the property (dot notation) is included in the PathProperties.
+   */
+  public boolean includesProperty(String name) {
+
+    String[] split = SplitName.split(name);
+    Props props = pathMap.get(split[0]);
+    return (props != null && props.includes(split[1]));
+  }
+
+  /**
+   * Return true if the property is included using a prefix.
+   */
+  public boolean includesProperty(String prefix, String name) {
+    return includesProperty(SplitName.add(prefix, name));
+  }
+
+  /**
+   * Return true if the fetch path is included in the PathProperties.
+   * <p>
+   * The fetch path is a OneToMany or ManyToMany path in dot notation.
+   * </p>
+   */
+  public boolean includesPath(String path) {
+    return pathMap.containsKey(path);
+  }
+
+  /**
+   * Return true if the path is included using a prefix.
+   */
+  public boolean includesPath(String prefix, String name) {
+    return includesPath(SplitName.add(prefix, name));
+  }
+
   public static class Props {
 
     private final PathProperties owner;
@@ -269,6 +303,10 @@ public class PathProperties {
 
     protected void addProps(Props value) {
       propSet.addAll(value.propSet);
+    }
+
+    protected boolean includes(String prop) {
+      return propSet.isEmpty() || propSet.contains(prop) || propSet.contains("*");
     }
   }
 

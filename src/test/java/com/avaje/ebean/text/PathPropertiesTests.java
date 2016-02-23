@@ -4,16 +4,15 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class PathPropertiesTests {
 
 
-  
   @Test
   public void test_noParentheses() {
-    
+
     PathProperties s0 = PathProperties.parse("id,name");
 
     assertEquals(1, s0.getPaths().size());
@@ -24,7 +23,7 @@ public class PathPropertiesTests {
 
   @Test
   public void test_noParentheses_needTrim() {
-    
+
     PathProperties s0 = PathProperties.parse(" id, name ");
 
     assertEquals(1, s0.getPaths().size());
@@ -32,7 +31,7 @@ public class PathPropertiesTests {
     assertTrue(s0.get(null).contains("name"));
     assertFalse(s0.get(null).contains("status"));
   }
-  
+
   @Test
   public void test_withParentheses() {
 
@@ -43,8 +42,7 @@ public class PathPropertiesTests {
     assertTrue(s0.get(null).contains("name"));
     assertFalse(s0.get(null).contains("status"));
   }
-  
-  
+
   @Test
   public void test_withColon() {
 
@@ -55,7 +53,7 @@ public class PathPropertiesTests {
     assertTrue(s0.get(null).contains("name"));
     assertFalse(s0.get(null).contains("status"));
   }
-  
+
   @Test
   public void test_nested() {
 
@@ -68,7 +66,7 @@ public class PathPropertiesTests {
     assertTrue(s1.get("shipAddr").contains("*"));
     assertEquals(1, s1.get("shipAddr").size());
   }
-  
+
   @Test
   public void test_withParenthesesColonNested() {
 
@@ -116,8 +114,75 @@ public class PathPropertiesTests {
     //PathProperties.Props rootProps = root.getProps(null);
     PathProperties.Props customerProps = root.getProps("customer");
 
-    assertThat(root.get(null)).containsExactly("*","customer");
+    assertThat(root.get(null)).containsExactly("*", "customer");
     assertThat(customerProps.getPropertiesAsString()).isEqualTo("*");
+  }
 
+  @Test
+  public void test_includesProperty_when_wildcardUsed() {
+
+    PathProperties root = PathProperties.parse("*,customer(*)");
+
+    assertTrue(root.includesProperty("id"));
+    assertTrue(root.includesProperty("name"));
+    assertTrue(root.includesProperty("customer.id"));
+    assertTrue(root.includesProperty("customer.name"));
+
+    assertFalse(root.includesProperty("details.id"));
+    assertTrue(root.includesProperty("details"));
+
+    assertFalse(root.includesPath("details"));
+  }
+
+  @Test
+  public void test_includesProperty_when_specificPropertiesUsed() {
+
+    PathProperties root = PathProperties.parse("id,name,customer(*,billingAddress(city))");
+
+    assertTrue(root.includesProperty("id"));
+    assertTrue(root.includesProperty("name"));
+    assertFalse(root.includesProperty("status"));
+
+    assertTrue(root.includesProperty("customer.id"));
+    assertTrue(root.includesProperty("customer.foo"));
+    assertTrue(root.includesProperty("customer.billingAddress"));
+    assertTrue(root.includesProperty("customer.billingAddress.city"));
+
+    assertFalse(root.includesPath("customer.shippingAddress"));
+    assertFalse(root.includesPath("customer", "shippingAddress"));
+    assertFalse(root.includesProperty("customer.shippingAddress.city"));
+
+    assertTrue(root.includesPath(null));
+    assertTrue(root.includesPath("customer"));
+    assertTrue(root.includesPath("customer.billingAddress"));
+    assertTrue(root.includesPath("customer", "billingAddress"));
+
+    assertFalse(root.includesPath("customer.shippingAddress"));
+    assertFalse(root.includesPath("details"));
+  }
+
+  @Test
+  public void test_includesPropertyWithPrefix() {
+
+    PathProperties root = PathProperties.parse("id,name,customer(*,billingAddress(city))");
+
+    assertTrue(root.includesProperty("customer", "id"));
+    assertTrue(root.includesProperty("customer", "billingAddress"));
+    assertTrue(root.includesProperty("customer.billingAddress", "city"));
+
+    assertFalse(root.includesPath("customer", "shippingAddress"));
+    assertFalse(root.includesProperty("customer.shippingAddress", "city"));
+  }
+
+  @Test
+  public void test_includesPathWithPrefix() {
+
+    PathProperties root = PathProperties.parse("id,name,customer(*,billingAddress(city))");
+
+    assertTrue(root.includesPath(null, "customer"));
+    assertTrue(root.includesPath("customer", "billingAddress"));
+
+    assertFalse(root.includesPath(null, "details"));
+    assertFalse(root.includesPath("customer", "shippingAddress"));
   }
 }

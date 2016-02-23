@@ -177,6 +177,8 @@ public class DeployBeanDescriptor<T> {
    */
   private boolean docStoreMapped;
 
+  private DocStore docStore;
+
   private PathProperties docStorePathProperties;
 
   private String docStoreQueueId;
@@ -263,6 +265,7 @@ public class DeployBeanDescriptor<T> {
    */
   public void readDocStore(DocStore docStore) {
 
+    this.docStore = docStore;
     docStoreMapped = true;
     docStoreQueueId = docStore.queueId();
     docStoreIndexName = docStore.indexName();
@@ -996,6 +999,10 @@ public class DeployBeanDescriptor<T> {
 
   public String getDocStoreIndexType() {
     return docStoreIndexType;
+  }
+
+  public DocStore getDocStore() {
+    return docStore;
   }
 
   /**

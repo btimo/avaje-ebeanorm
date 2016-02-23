@@ -41,8 +41,6 @@ public abstract class DeployBeanPropertyAssoc<T> extends DeployBeanProperty {
 
 	String docStoreDoc;
 
-	boolean docStoreFlatten;
-
 	/**
 	 * Construct the property.
 	 */
@@ -137,14 +135,10 @@ public abstract class DeployBeanPropertyAssoc<T> extends DeployBeanProperty {
 	 */
 	public void setDocStoreEmbedded(DocStoreEmbedded embedded) {
 		docStoreDoc = embedded.doc();
-		docStoreFlatten = embedded.flatten();
 	}
 
   public String getDocStoreDoc() {
     return docStoreDoc;
   }
 
-  public boolean isDocStoreFlatten() {
-    return docStoreFlatten;
-  }
 }

@@ -1,6 +1,7 @@
 package com.avaje.ebeanservice.docstore.api.support;
 
 import com.avaje.ebean.Query;
+import com.avaje.ebean.annotation.DocStore;
 import com.avaje.ebean.annotation.DocStoreEvent;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
@@ -13,6 +14,8 @@ import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanDescriptor;
 import com.avaje.ebeanservice.docstore.api.DocStoreBeanAdapter;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
+import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
+import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -58,6 +61,11 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   protected final String indexName;
 
   /**
+   * Doc store deployment annotation.
+   */
+  private final DocStore docStore;
+
+  /**
    * Behavior on insert.
    */
   protected final DocStoreEvent insert;
@@ -84,13 +92,27 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
     this.desc = desc;
     this.server = desc.getEbeanServer();
     this.mapped = deploy.isDocStoreMapped();
-    this.docStructure = derivePathProperties(deploy);
+    this.docStructure = (!mapped) ? null : derivePathProperties(deploy);
+    this.docStore = deploy.getDocStore();
     this.queueId = derive(desc, deploy.getDocStoreQueueId());
     this.indexName = derive(desc, deploy.getDocStoreIndexName());
     this.indexType = derive(desc, deploy.getDocStoreIndexType());
     this.insert = deploy.getDocStoreInsertEvent();
     this.update = deploy.getDocStoreUpdateEvent();
     this.delete = deploy.getDocStoreDeleteEvent();
+  }
+
+  @Override
+  public DocumentMapping createDocMapping() {
+
+    PathProperties paths = docStructure.doc();
+
+    DocMappingBuilder mappingBuilder = new DocMappingBuilder(paths, docStore);
+    desc.docStoreMapping(mappingBuilder, null);
+
+    mappingBuilder.applyMapping();
+
+    return mappingBuilder.create(queueId, indexName, indexType);
   }
 
   /**
@@ -186,6 +208,11 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   }
 
   @Override
+  public PathProperties docStorePaths() {
+    return docStructure.doc();
+  }
+
+  @Override
   public PathProperties docStoreNested(String path) {
     return docStructure.getNested(path);
   }
@@ -260,6 +287,5 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
 
   @Override
   public abstract void update(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException;
-
 
 }

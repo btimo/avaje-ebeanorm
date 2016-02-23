@@ -5,6 +5,9 @@ import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.config.EncryptKey;
 import com.avaje.ebean.config.dbplatform.DbEncryptFunction;
 import com.avaje.ebean.config.dbplatform.DbType;
+import com.avaje.ebeaninternal.server.type.ScalarTypeEnum;
+import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
+import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyMapping;
 import com.avaje.ebean.plugin.SpiProperty;
 import com.avaje.ebean.text.StringParser;
 import com.avaje.ebeaninternal.server.core.InternString;
@@ -25,6 +28,8 @@ import com.avaje.ebeaninternal.server.type.DataBind;
 import com.avaje.ebeaninternal.server.type.ScalarType;
 import com.avaje.ebeaninternal.server.type.ScalarTypeBoolean;
 import com.avaje.ebeaninternal.util.ValueUtil;
+import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyOptions;
+import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyType;
 import com.fasterxml.jackson.core.JsonToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -197,6 +202,8 @@ public class BeanProperty implements ElPropertyValue, SpiProperty {
   @SuppressWarnings("rawtypes")
   final ScalarType scalarType;
 
+  final DocPropertyOptions docOptions;
+
   /**
    * The length or precision for DB column.
    */
@@ -314,6 +321,7 @@ public class BeanProperty implements ElPropertyValue, SpiProperty {
     this.lob = isLobType(dbType);
     this.propertyType = deploy.getPropertyType();
     this.field = deploy.getField();
+    this.docOptions = deploy.getDocPropertyOptions();
 
     this.elPlaceHolder = tableAliasIntern(descriptor, deploy.getElPlaceHolder(), false, null);
     this.elPlaceHolderEncrypted = tableAliasIntern(descriptor, deploy.getElPlaceHolder(), dbEncrypted, dbColumn);
@@ -415,6 +423,7 @@ public class BeanProperty implements ElPropertyValue, SpiProperty {
     this.lob = isLobType(dbType);
     this.propertyType = source.getPropertyType();
     this.field = source.getField();
+    this.docOptions = source.docOptions;
 
     this.elPlaceHolder = override.replace(source.elPlaceHolder, source.dbColumn);
     this.elPlaceHolderEncrypted = override.replace(source.elPlaceHolderEncrypted, source.dbColumn);
@@ -1292,5 +1301,29 @@ public class BeanProperty implements ElPropertyValue, SpiProperty {
       String propName = (prefix == null) ? name : prefix + "." + name;
       map.put(propName, new ValuePair(newVal, oldVal));
     }
+  }
+
+  /**
+   * Add to the document mapping if this property is included for this index.
+   */
+  public void docStoreMapping(DocMappingBuilder mapping, String prefix) {
+
+    if (mapping.includesProperty(prefix, name)) {
+
+      DocPropertyType type = scalarType.getDocType();
+      DocPropertyOptions options = docOptions.copy();
+      if (DocPropertyType.STRING == type && isDocCode()) {
+        options.setCode(true);
+      }
+
+      mapping.add(new DocPropertyMapping(name, type, options));
+    }
+  }
+
+  /**
+   * Return true if this should be treated as a 'code' (effectively not analysed).
+   */
+  private boolean isDocCode() {
+    return id || scalarType instanceof ScalarTypeEnum;
   }
 }
