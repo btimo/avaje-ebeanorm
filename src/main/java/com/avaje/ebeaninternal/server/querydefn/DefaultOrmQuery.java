@@ -66,7 +66,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
   private transient ProfilingListener profilingListener;
 
-  private transient BeanDescriptor<?> beanDescriptor;
+  private transient BeanDescriptor<T> beanDescriptor;
 
   private boolean cancelled;
 
@@ -247,8 +247,9 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
   private RawSql rawSql;
 
-  public DefaultOrmQuery(Class<T> beanType, EbeanServer server, ExpressionFactory expressionFactory, String query) {
-    this.beanType = beanType;
+  public DefaultOrmQuery(BeanDescriptor<T> desc, EbeanServer server, ExpressionFactory expressionFactory, String query) {
+    this.beanDescriptor = desc;
+    this.beanType = desc.getBeanType();
     this.server = server;
     this.expressionFactory = expressionFactory;
     this.detail = new OrmQueryDetail();
@@ -261,10 +262,11 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   /**
    * Additional supply a query which is parsed.
    */
-  public DefaultOrmQuery(Class<T> beanType, EbeanServer server, ExpressionFactory expressionFactory,
+  public DefaultOrmQuery(BeanDescriptor<T> desc, EbeanServer server, ExpressionFactory expressionFactory,
                          DeployNamedQuery namedQuery) throws PersistenceException {
 
-    this.beanType = beanType;
+    this.beanDescriptor = desc;
+    this.beanType = desc.getBeanType();
     this.server = server;
     this.expressionFactory = expressionFactory;
     this.detail = new OrmQueryDetail();
@@ -326,10 +328,27 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
     detail.writeElastic(context);
 
+    if (orderBy != null && !orderBy.isEmpty()) {
+      json.writeFieldName("sort");
+      json.writeStartArray();
+
+      List<Property> properties = orderBy.getProperties();
+      for (Property property : properties) {
+        json.writeStartObject();
+        String propName = beanDescriptor.docStorePropertyRaw(property.getProperty());
+        json.writeFieldName(propName);
+        json.writeStartObject();
+        json.writeStringField("order", property.isAscending()? "asc" : "desc");
+        json.writeEndObject();
+        json.writeEndObject();
+      }
+      json.writeEndArray();
+    }
+
     json.writeFieldName("query");
     json.writeStartObject();
 
-    if (whereExpressions != null) {
+    if (whereExpressions != null && !whereExpressions.isEmpty()) {
       json.writeFieldName("filtered");
       json.writeStartObject();
       json.writeFieldName("filter");
@@ -339,10 +358,8 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
       json.writeObjectFieldStart("match_all");
       json.writeEndObject();
     }
-
     json.writeEndObject();
     json.writeEndObject();
-
   }
 
   @Override
@@ -403,7 +420,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   /**
    * Set the BeanDescriptor for the root type of this query.
    */
-  public void setBeanDescriptor(BeanDescriptor<?> beanDescriptor) {
+  public void setBeanDescriptor(BeanDescriptor<T> beanDescriptor) {
     this.beanDescriptor = beanDescriptor;
   }
 
@@ -622,7 +639,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
   public DefaultOrmQuery<T> copy(EbeanServer server) {
 
-    DefaultOrmQuery<T> copy = new DefaultOrmQuery<T>(beanType, server, expressionFactory, (String) null);
+    DefaultOrmQuery<T> copy = new DefaultOrmQuery<T>(beanDescriptor, server, expressionFactory, (String) null);
     copy.name = name;
     copy.includeTableJoin = includeTableJoin;
     copy.profilingListener = profilingListener;

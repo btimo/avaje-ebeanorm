@@ -147,7 +147,7 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
     this.parentBean = parentBean;
     this.controller = beanDescriptor.getPersistController();
     this.type = type;
-
+    this.docStoreEvent = calcDocStoreEvent(transaction, type);
     if (saveRecurse) {
       this.persistCascade = t.isPersistCascade();
     }
@@ -171,6 +171,9 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
 
   /**
    * Return the document store event that should be used for this request.
+   *
+   * Used to check if the Transaction has set the mode to IGNORE when doing large batch inserts that we
+   * don't want to send to the doc store.
    */
   private DocStoreEvent calcDocStoreEvent(SpiTransaction txn, Type type) {
     DocStoreEvent docStoreEvent = (txn == null) ? null : txn.getDocStoreUpdateMode();
@@ -198,14 +201,16 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
    * Init the transaction and also check for batch on cascade escalation.
    */
   public void initTransIfRequiredWithBatchCascade() {
-    createImplicitTransIfRequired();
+
+    if (createImplicitTransIfRequired()) {
+      docStoreEvent = calcDocStoreEvent(transaction, type);
+    }
     if (transaction.checkBatchEscalationOnCascade(this)) {
       // we escalated to use batch mode so flush when done
       // but if createdTransaction then commit will flush it
       batchOnCascadeSet = !createdTransaction;
     }
     persistCascade = transaction.isPersistCascade();
-    docStoreEvent = calcDocStoreEvent(transaction, type);
   }
 
   /**

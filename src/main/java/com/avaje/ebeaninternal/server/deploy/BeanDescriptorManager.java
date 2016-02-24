@@ -449,6 +449,12 @@ public class BeanDescriptorManager implements BeanDescriptorMap {
       d.initialiseOther(asOfTableMap, asOfViewSuffix, draftTableMap);
     }
 
+    // PASS 4:
+    // now initialise document mapping which needs target descriptors
+    for (BeanDescriptor<?> d : descMap.values()) {
+      d.initialiseDocMapping();
+    }
+
     // create BeanManager for each non-embedded entity bean
     for (BeanDescriptor<?> d : descMap.values()) {
       if (!d.isEmbedded()) {

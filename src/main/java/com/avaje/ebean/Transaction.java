@@ -87,7 +87,9 @@ public interface Transaction extends Closeable {
    * Set the behavior for document store updates on this transaction.
    * <p>
    *   For example, set the mode to DocStoreEvent.IGNORE for this transaction and
-   *   manually specify a bulk invalidation.
+   *   then any changes via this transaction are not sent to the doc store. This
+   *   would be used when doing large bulk inserts into the database and we want
+   *   to control how that is sent to the document store.
    * </p>
    */
   void setDocStoreUpdateMode(DocStoreEvent updateMode);

@@ -293,7 +293,7 @@ public interface SpiQuery<T> extends Query<T> {
   /**
    * Set the BeanDescriptor for the root type of this query.
    */
-  void setBeanDescriptor(BeanDescriptor<?> desc);
+  void setBeanDescriptor(BeanDescriptor<T> desc);
 
   /**
    * Return the joins required to support predicates on the many properties.

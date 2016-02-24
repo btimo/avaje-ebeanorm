@@ -96,6 +96,18 @@ public class DocMappingBuilder {
   }
 
   /**
+   * Collect the mapping of properties to 'raw' properties for those marked as sortable.
+   */
+  public Map<String, String> collectSortable() {
+
+    DocPropertyMapping peek = properties.peek();
+    SortableVisitor visitor = new SortableVisitor();
+    peek.visit(visitor);
+
+    return visitor.getSortableMap();
+  }
+
+  /**
    * Create the document mapping.
    */
   public DocumentMapping create(String queueId, String indexName, String indexType) {
@@ -105,5 +117,26 @@ public class DocMappingBuilder {
 
     DocPropertyMapping root = properties.peek();
     return new DocumentMapping(queueId, indexName, indexType, paths, root, shards, replicas);
+  }
+
+
+  static class SortableVisitor extends DocPropertyAdapter {
+
+    Map<String,String> sortableMap = new LinkedHashMap<String, String>();
+
+    @Override
+    public void visitProperty(DocPropertyMapping property) {
+
+      DocPropertyOptions options = property.getOptions();
+      if (options != null && Boolean.TRUE.equals(options.getSortable())) {
+        String fullPath = pathStack.peekFullPath(property.getName());
+        sortableMap.put(fullPath, fullPath+".raw");
+      }
+
+    }
+
+    public Map<String, String> getSortableMap() {
+      return sortableMap;
+    }
   }
 }

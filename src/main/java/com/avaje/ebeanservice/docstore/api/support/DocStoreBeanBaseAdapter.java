@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -86,6 +87,11 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
    */
   protected final List<DocStoreEmbeddedInvalidation> embeddedInvalidation = new ArrayList<DocStoreEmbeddedInvalidation>();
 
+  /**
+   * Map of properties to 'raw' properties.
+   */
+  private Map<String, String> sortableMap;
+
 
   public DocStoreBeanBaseAdapter(BeanDescriptor<T> desc, DeployBeanDescriptor<T> deploy) {
 
@@ -105,14 +111,30 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   @Override
   public DocumentMapping createDocMapping() {
 
+    if (!mapped) return null;
+
     PathProperties paths = docStructure.doc();
 
     DocMappingBuilder mappingBuilder = new DocMappingBuilder(paths, docStore);
     desc.docStoreMapping(mappingBuilder, null);
 
     mappingBuilder.applyMapping();
+    prepareMapping(mappingBuilder);
+
+    sortableMap = mappingBuilder.collectSortable();
 
     return mappingBuilder.create(queueId, indexName, indexType);
+  }
+
+  protected void prepareMapping(DocMappingBuilder mappingBuilder) {
+    // do nothing by default
+  }
+
+  @Override
+  public String docStorePropertyRaw(String property) {
+
+    String rawProperty = sortableMap.get(property);
+    return rawProperty == null ? property : rawProperty;
   }
 
   /**

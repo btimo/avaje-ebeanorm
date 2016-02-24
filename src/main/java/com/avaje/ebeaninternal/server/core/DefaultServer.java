@@ -909,7 +909,7 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
 
   public <T> Query<T> createNamedQuery(Class<T> beanType, String namedQuery) throws PersistenceException {
 
-    BeanDescriptor<?> desc = getBeanDescriptor(beanType);
+    BeanDescriptor<T> desc = getBeanDescriptor(beanType);
     if (desc == null) {
       throw new PersistenceException("Is " + beanType.getName() + " an Entity Bean? BeanDescriptor not found?");
     }
@@ -919,7 +919,7 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     }
 
     // this will parse the query
-    return new DefaultOrmQuery<T>(beanType, this, expressionFactory, deployQuery);
+    return new DefaultOrmQuery<T>(desc, this, expressionFactory, deployQuery);
   }
 
   @Override
@@ -954,10 +954,9 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
   }
 
   public <T> Query<T> createQuery(Class<T> beanType, String query) {
-    BeanDescriptor<?> desc = getBeanDescriptor(beanType);
+    BeanDescriptor<T> desc = getBeanDescriptor(beanType);
     if (desc == null) {
-      String m = beanType.getName() + " is NOT an Entity Bean registered with this server?";
-      throw new PersistenceException(m);
+      throw new PersistenceException(beanType.getName() + " is NOT an Entity Bean registered with this server?");
     }
     switch (desc.getEntityType()) {
     case SQL:
@@ -966,10 +965,10 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
       }
       // use the "default" SqlSelect
       DeployNamedQuery defaultSqlSelect = desc.getNamedQuery("default");
-      return new DefaultOrmQuery<T>(beanType, this, expressionFactory, defaultSqlSelect);
+      return new DefaultOrmQuery<T>(desc, this, expressionFactory, defaultSqlSelect);
 
     default:
-      return new DefaultOrmQuery<T>(beanType, this, expressionFactory, query);
+      return new DefaultOrmQuery<T>(desc, this, expressionFactory, query);
     }
   }
 

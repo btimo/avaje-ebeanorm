@@ -114,4 +114,13 @@ public interface DocStoreBeanAdapter<T> {
    * Create the document mapping.
    */
   DocumentMapping createDocMapping();
+
+  /**
+   * Return an un-analysed property to use instead of the given property.
+   * <p>
+   * For analysed properties that we want to sort on we will map the property to an additional
+   * 'raw' property that we can use for sorting etc.
+   * </p>
+   */
+  String docStorePropertyRaw(String property);
 }

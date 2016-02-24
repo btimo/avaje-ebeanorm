@@ -360,6 +360,8 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
 
   private final String docStoreQueueId;
 
+  private DocumentMapping docMapping;
+
   private final BeanDescriptorDraftHelp<T> draftHelp;
   private final BeanDescriptorCacheHelp<T> cacheHelp;
   private final BeanDescriptorJsonHelp<T> jsonHelp;
@@ -686,6 +688,13 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     docStoreAdapter.registerPaths();
   }
 
+  /**
+   * Initialise the document mapping.
+   */
+  public void initialiseDocMapping() {
+    docMapping = docStoreAdapter.createDocMapping();
+  }
+
   public void initInheritInfo() {
     if (inheritInfo != null) {
       // need to check every BeanDescriptor in the inheritance hierarchy
@@ -921,7 +930,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
 
   @Override
   public DocumentMapping getDocMapping() {
-    return docStoreAdapter.createDocMapping();
+    return docMapping;
   }
 
   /**
@@ -956,6 +965,14 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   @Override
   public void docStoreApplyPath(Query<T> query) {
     docStoreAdapter.docStoreApplyPath(query);
+  }
+
+  /**
+   * Return a 'raw' property mapped for the given property.
+   * If none exists the given property is returned.
+   */
+  public String docStorePropertyRaw(String property) {
+    return docStoreAdapter.docStorePropertyRaw(property);
   }
 
   @Override

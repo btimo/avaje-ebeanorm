@@ -21,7 +21,7 @@ import com.avaje.ebeaninternal.server.persist.BatchControl;
 public interface SpiTransaction extends Transaction {
 
   /**
-   * Return the string prefix with the transactin id and label used in logging.
+   * Return the string prefix with the transaction id and label used in logging.
    */
   String getLogPrefix();
 
