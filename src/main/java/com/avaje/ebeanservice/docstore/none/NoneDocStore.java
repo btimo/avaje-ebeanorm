@@ -17,7 +17,32 @@ public class NoneDocStore implements DocumentStore {
   public static IllegalStateException implementationNotInClassPath() {
     throw new IllegalStateException("DocStore implementation not included in the classPath. You need to add the maven dependency for avaje-ebeanorm-elastic");
   }
-  
+
+  @Override
+  public void dropIndex(String newIndex) {
+    throw implementationNotInClassPath();
+  }
+
+  @Override
+  public void createIndex(String indexName, String alias, String mappingResource) {
+    throw implementationNotInClassPath();
+  }
+
+  @Override
+  public void indexAll(Class<?> countryClass) {
+    throw implementationNotInClassPath();
+  }
+
+  @Override
+  public long copyIndex(Class<?> beanType, String newIndex) {
+    throw implementationNotInClassPath();
+  }
+
+  @Override
+  public long copyIndex(Class<?> beanType, String newIndex, long epochMillis) {
+    throw implementationNotInClassPath();
+  }
+
   @Override
   public <T> void indexByQuery(Query<T> query) {
     throw implementationNotInClassPath();

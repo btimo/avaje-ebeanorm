@@ -26,15 +26,22 @@ public class SimpleExpression extends AbstractExpression {
   @Override
   public void writeElastic(ElasticExpressionContext context) throws IOException {
     JsonGenerator gen = context.json();
+    gen.writeStartObject();
     if (type == Op.EQ) {
-      gen.writeStartObject();
-      gen.writeFieldName("term");
-      gen.writeStartObject();
+      gen.writeObjectFieldStart("term");
       gen.writeFieldName(propName);
+      gen.writeObject(value);
+      gen.writeEndObject();
+
+    } else if (type == Op.GT_EQ) {
+      gen.writeObjectFieldStart("range");
+      gen.writeObjectFieldStart(propName);
+      gen.writeFieldName(type.docExp());
       gen.writeObject(value);
       gen.writeEndObject();
       gen.writeEndObject();
     }
+    gen.writeEndObject();
   }
 
   public final String getPropName() {

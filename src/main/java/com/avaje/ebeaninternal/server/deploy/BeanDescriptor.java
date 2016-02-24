@@ -252,7 +252,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   private final BeanProperty versionProperty;
   
   private final int versionPropertyIndex;
-  
+
+  private final BeanProperty whenModifiedProperty;
+
+  private final BeanProperty whenCreatedProperty;
+
   /**
    * Properties that are initialised in the constructor need to be 'unloaded' to support partial object queries.
    */
@@ -477,6 +481,8 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     
     // object used to handle Id values
     this.idBinder = owner.createIdBinder(idProperty);
+    this.whenModifiedProperty = findWhenModifiedProperty();
+    this.whenCreatedProperty = findWhenCreatedProperty();
 
     // derive the index position of the Id and Version properties
     if (Modifier.isAbstract(beanType.getModifiers())) {
@@ -1338,9 +1344,23 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   /**
+   * Return the 'when modified' property if there is one defined.
+   */
+  public BeanProperty getWhenModifiedProperty() {
+    return whenModifiedProperty;
+  }
+
+  /**
+   * Return the 'when created' property if there is one defined.
+   */
+  public BeanProperty getWhenCreatedProperty() {
+    return whenCreatedProperty;
+  }
+
+  /**
    * Find a property annotated with @WhenCreated or @CreatedTimestamp.
    */
-  public BeanProperty findWhenCreatedProperty() {
+  private BeanProperty findWhenCreatedProperty() {
 
     for (int i = 0; i < propertiesBaseScalar.length; i++) {
       if (propertiesBaseScalar[i].isGeneratedWhenCreated()) {
@@ -1353,7 +1373,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   /**
    * Find a property annotated with @WhenModified or @UpdatedTimestamp.
    */
-  public BeanProperty findWhenModifiedProperty() {
+  private BeanProperty findWhenModifiedProperty() {
 
     for (int i = 0; i < propertiesBaseScalar.length; i++) {
       if (propertiesBaseScalar[i].isGeneratedWhenModified()) {
@@ -1600,6 +1620,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   /**
    * Return the class type this BeanDescriptor describes.
    */
+  @Override
   public Class<T> getBeanType() {
     return beanType;
   }
@@ -1611,6 +1632,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    * instead.
    * </p>
    */
+  @Override
   public String getFullName() {
     return fullName;
   }

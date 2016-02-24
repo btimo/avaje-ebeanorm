@@ -6,6 +6,11 @@ package com.avaje.ebean.plugin;
 public interface SpiProperty {
 
   /**
+   * Return the name of the property.
+   */
+  String getName();
+
+  /**
    * Return the value of the property on the given bean.
    */
   Object getVal(Object bean);

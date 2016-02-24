@@ -69,7 +69,7 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
 
   private final boolean publish;
 
-  private final DocStoreEvent docStoreEvent;
+  private DocStoreEvent docStoreEvent;
 
   private ConcurrencyMode concurrencyMode;
 
@@ -147,8 +147,7 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
     this.parentBean = parentBean;
     this.controller = beanDescriptor.getPersistController();
     this.type = type;
-    this.docStoreEvent = calcDocStoreEvent(t, type);
-    
+
     if (saveRecurse) {
       this.persistCascade = t.isPersistCascade();
     }
@@ -206,6 +205,7 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
       batchOnCascadeSet = !createdTransaction;
     }
     persistCascade = transaction.isPersistCascade();
+    docStoreEvent = calcDocStoreEvent(transaction, type);
   }
 
   /**

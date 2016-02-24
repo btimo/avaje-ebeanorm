@@ -21,6 +21,11 @@ import java.util.Collection;
 public interface SpiBeanType<T> {
 
   /**
+   * Return the full name of the bean type.
+   */
+  String getFullName();
+
+  /**
    * Return the class type this BeanDescriptor describes.
    */
   Class<T> getBeanType();
@@ -36,8 +41,18 @@ public interface SpiBeanType<T> {
   Collection<? extends SpiProperty> allProperties();
 
   /**
-   * Return the SpiProperty for a property to read values from a bean.
+   * Return the when modified property if there is one defined.
    */
+  SpiProperty getWhenModifiedProperty();
+
+  /**
+   * Return the when created property if there is one defined.
+   */
+  SpiProperty getWhenCreatedProperty();
+
+    /**
+     * Return the SpiProperty for a property to read values from a bean.
+     */
   SpiProperty property(String propertyName);
 
   /**
@@ -175,4 +190,5 @@ public interface SpiBeanType<T> {
    * Read the JSON content returning the bean.
    */
   T jsonRead(JsonParser parser, JsonReadOptions readOptions, Object objectMapper) throws IOException;
+
 }

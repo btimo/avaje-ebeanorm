@@ -329,16 +329,17 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
     json.writeFieldName("query");
     json.writeStartObject();
 
-    json.writeFieldName("filtered");
-    json.writeStartObject();
+    if (whereExpressions != null) {
+      json.writeFieldName("filtered");
+      json.writeStartObject();
+      json.writeFieldName("filter");
+      whereExpressions.writeElastic(context);
+      json.writeEndObject();
+    } else {
+      json.writeObjectFieldStart("match_all");
+      json.writeEndObject();
+    }
 
-    json.writeFieldName("filter");
-    //json.writeStartObject();
-
-    whereExpressions.writeElastic(context);
-    //json.writeEndObject();
-
-    json.writeEndObject();
     json.writeEndObject();
     json.writeEndObject();
 
