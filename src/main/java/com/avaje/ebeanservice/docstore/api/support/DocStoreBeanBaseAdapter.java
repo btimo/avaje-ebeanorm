@@ -131,7 +131,7 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   }
 
   @Override
-  public String docStorePropertyRaw(String property) {
+  public String docStoreRawProperty(String property) {
 
     String rawProperty = sortableMap.get(property);
     return rawProperty == null ? property : rawProperty;

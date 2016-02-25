@@ -26,7 +26,9 @@ final class NotExpression implements SpiExpression {
 
   @Override
   public void writeElastic(ElasticExpressionContext context) throws IOException {
-    throw new IllegalStateException("Not supported");
+    context.writeBoolMustNotStart();
+    exp.writeElastic(context);
+    context.writeBoolEnd();
   }
 
   @Override

@@ -313,37 +313,16 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   public void writeElastic(ElasticExpressionContext context) throws IOException {
 
     JsonGenerator json = context.json();
-
     json.writeStartObject();
-
     if (firstRow > 0) {
-      json.writeFieldName("from");
-      json.writeNumber(firstRow);
+      json.writeNumberField("from", firstRow);
     }
-
     if (maxRows > 0) {
-      json.writeFieldName("size");
-      json.writeNumber(maxRows);
+      json.writeNumberField("size", maxRows);
     }
 
     detail.writeElastic(context);
-
-    if (orderBy != null && !orderBy.isEmpty()) {
-      json.writeFieldName("sort");
-      json.writeStartArray();
-
-      List<Property> properties = orderBy.getProperties();
-      for (Property property : properties) {
-        json.writeStartObject();
-        String propName = beanDescriptor.docStorePropertyRaw(property.getProperty());
-        json.writeFieldName(propName);
-        json.writeStartObject();
-        json.writeStringField("order", property.isAscending()? "asc" : "desc");
-        json.writeEndObject();
-        json.writeEndObject();
-      }
-      json.writeEndArray();
-    }
+    context.writeOrderBy(orderBy);
 
     json.writeFieldName("query");
     json.writeStartObject();

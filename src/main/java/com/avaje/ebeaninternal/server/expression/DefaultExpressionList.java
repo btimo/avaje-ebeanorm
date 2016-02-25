@@ -65,18 +65,16 @@ public class DefaultExpressionList<T> implements SpiExpressionList<T> {
   @Override
   public void writeElastic(ElasticExpressionContext context) throws IOException {
 
-    JsonGenerator json = context.json();
-    json.writeStartObject();
-    json.writeFieldName("bool");
-    json.writeStartObject();
-    json.writeFieldName("must");
-    json.writeStartArray();
-    for (int i = 0; i < list.size(); i++) {
-      list.get(i).writeElastic(context);
+    int size = list.size();
+    if (size == 1) {
+      list.get(0).writeElastic(context);
+    } else {
+      context.writeBoolMustStart();
+      for (int i = 0; i < size; i++) {
+        list.get(i).writeElastic(context);
+      }
+      context.writeBoolEnd();
     }
-    json.writeEndArray();
-    json.writeEndObject();
-    json.writeEndObject();
   }
 
   @Override

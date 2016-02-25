@@ -122,5 +122,5 @@ public interface DocStoreBeanAdapter<T> {
    * 'raw' property that we can use for sorting etc.
    * </p>
    */
-  String docStorePropertyRaw(String property);
+  String docStoreRawProperty(String property);
 }

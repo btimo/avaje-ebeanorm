@@ -25,11 +25,6 @@ public abstract class AbstractExpression implements SpiExpression {
   }
 
   @Override
-  public void writeElastic(ElasticExpressionContext context) throws IOException {
-    throw new IllegalStateException("Not supported");
-  }
-
-  @Override
   public SpiExpression copyForPlanKey() {
     return this;
   }

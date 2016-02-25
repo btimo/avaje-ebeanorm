@@ -64,7 +64,12 @@ abstract class LogicExpression implements SpiExpression {
 
   @Override
   public void writeElastic(ElasticExpressionContext context) throws IOException {
-    throw new IllegalStateException("Not supported");
+
+    boolean conjunction = joinType.equals(AND);
+    context.writeBoolStart(conjunction);
+    expOne.writeElastic(context);
+    expTwo.writeElastic(context);
+    context.writeBoolEnd();
   }
 
   @Override

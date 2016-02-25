@@ -8,30 +8,29 @@ public enum Op {
   /**
    * Exists (JSON).
    */
-  EXISTS(" is not null ",""),
+  EXISTS(" is not null ", ""),
 
   /**
    * Not Exists (JSON).
    */
-  NOT_EXISTS(" is null ",""),
+  NOT_EXISTS(" is null ", ""),
 
   /**
    * Between (JSON).
    */
-  BETWEEN(" between ? and ? ",""),
+  BETWEEN(" between ? and ? ", ""),
 
   /**
    * Equal to
    */
-  EQ(" = ? ",""),
+  EQ(" = ? ", ""),
 
   /**
    * Not equal to.
    */
-  NOT_EQ(" <> ? ",""),
+  NOT_EQ(" <> ? ", ""),
 
   /**
-   *
    * Less than.
    */
 

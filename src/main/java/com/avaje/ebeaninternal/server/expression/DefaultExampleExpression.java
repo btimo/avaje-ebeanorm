@@ -97,7 +97,13 @@ public class DefaultExampleExpression implements SpiExpression, ExampleExpressio
 
   @Override
   public void writeElastic(ElasticExpressionContext context) throws IOException {
-    throw new IllegalStateException("Not supported");
+    if (!list.isEmpty()) {
+      context.writeBoolMustStart();
+      for (SpiExpression expr : list) {
+        expr.writeElastic(context);
+      }
+      context.writeBoolEnd();
+    }
   }
 
   @Override

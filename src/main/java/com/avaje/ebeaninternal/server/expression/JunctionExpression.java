@@ -89,7 +89,13 @@ abstract class JunctionExpression<T> implements Junction<T>, SpiExpression, Expr
 
   @Override
   public void writeElastic(ElasticExpressionContext context) throws IOException {
-    throw new IllegalStateException("Not supported");
+
+    context.writeBoolStart(!disjunction);
+    List<SpiExpression> list = exprList.internalList();
+    for (int i = 0; i < list.size(); i++) {
+      list.get(i).writeElastic(context);
+    }
+    context.writeBoolEnd();
   }
 
   @Override
@@ -120,8 +126,7 @@ abstract class JunctionExpression<T> implements Junction<T>, SpiExpression, Expr
 
   @Override
   public Junction<T> add(Expression item) {
-    SpiExpression i = (SpiExpression) item;
-    exprList.add(i);
+    exprList.add(item);
     return this;
   }
 
@@ -137,8 +142,7 @@ abstract class JunctionExpression<T> implements Junction<T>, SpiExpression, Expr
     List<SpiExpression> list = exprList.internalList();
 
     for (int i = 0; i < list.size(); i++) {
-      SpiExpression item = list.get(i);
-      item.addBindValues(request);
+      list.get(i).addBindValues(request);
     }
   }
 

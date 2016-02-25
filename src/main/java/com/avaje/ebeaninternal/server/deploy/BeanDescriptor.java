@@ -971,8 +971,8 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
    * Return a 'raw' property mapped for the given property.
    * If none exists the given property is returned.
    */
-  public String docStorePropertyRaw(String property) {
-    return docStoreAdapter.docStorePropertyRaw(property);
+  public String docStoreRawProperty(String property) {
+    return docStoreAdapter.docStoreRawProperty(property);
   }
 
   @Override

@@ -5,7 +5,6 @@ import com.avaje.ebeaninternal.api.HashQueryPlanBuilder;
 import com.avaje.ebeaninternal.api.SpiExpression;
 import com.avaje.ebeaninternal.api.SpiExpressionRequest;
 import com.avaje.ebeaninternal.server.el.ElPropertyValue;
-import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
 
@@ -25,23 +24,12 @@ public class SimpleExpression extends AbstractExpression {
 
   @Override
   public void writeElastic(ElasticExpressionContext context) throws IOException {
-    JsonGenerator gen = context.json();
-    gen.writeStartObject();
-    if (type == Op.EQ) {
-      gen.writeObjectFieldStart("term");
-      gen.writeFieldName(propName);
-      gen.writeObject(value);
-      gen.writeEndObject();
 
-    } else if (type == Op.GT_EQ) {
-      gen.writeObjectFieldStart("range");
-      gen.writeObjectFieldStart(propName);
-      gen.writeFieldName(type.docExp());
-      gen.writeObject(value);
-      gen.writeEndObject();
-      gen.writeEndObject();
+    if (type == Op.BETWEEN) {
+      throw new IllegalStateException("BETWEEN Not expected in SimpleExpression?");
     }
-    gen.writeEndObject();
+
+    context.writeSimple(type, propName, value);
   }
 
   public final String getPropName() {

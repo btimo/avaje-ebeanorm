@@ -1,8 +1,7 @@
 package com.avaje.ebean;
 
 /**
- * Bean holding the queueId and beanId used to queueIndex a request to updateAdd an ElasticSearch
- * index.
+ * Bean holding the details to update the document store.
  */
 public final class DocStoreQueueEntry {
 
@@ -12,28 +11,31 @@ public final class DocStoreQueueEntry {
   public enum Action {
 
     /**
-     * Action is to update the index entry.
+     * Action is to update a document in the doc store.
      */
     INDEX(1),
 
     /**
-     * Action is to delete the index entry.
+     * Action is to delete a document from the doc store..
      */
     DELETE(2),
 
     /**
-     * An update is required based on an update in a nested/embedded object at a given path.
+     * An update is required based on a change to a nested/embedded object at a given path.
      */
     NESTED(3);
 
-    int dbValue;
+    int value;
 
-    Action(int dbValue) {
-      this.dbValue = dbValue;
+    Action(int value) {
+      this.value = value;
     }
 
-    public int getDbValue() {
-      return dbValue;
+    /**
+     * Return the value associated with this action type.
+     */
+    public int getValue() {
+      return value;
     }
   }
 
@@ -62,18 +64,30 @@ public final class DocStoreQueueEntry {
     this.beanId = beanId;
   }
 
+  /**
+   * Return the event type.
+   */
   public Action getType() {
     return type;
   }
 
+  /**
+   * Return the associate queueId.
+   */
   public String getQueueId() {
     return queueId;
   }
 
+  /**
+   * Return the path if this is a nested update.
+   */
   public String getPath() {
     return path;
   }
 
+  /**
+   * Return the bean id (which matches the document id).
+   */
   public Object getBeanId() {
     return beanId;
   }

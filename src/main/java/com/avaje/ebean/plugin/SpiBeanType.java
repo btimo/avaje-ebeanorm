@@ -164,6 +164,12 @@ public interface SpiBeanType<T> {
   PathProperties docStoreNested(String path);
 
   /**
+   * Return a 'raw' property mapped for the given property.
+   * If none exists the given property is returned.
+   */
+  String docStoreRawProperty(String property);
+
+  /**
    * Store the bean in the doc store index.
    * <p>
    * This somewhat assumes the bean is fetched with appropriate path properties
