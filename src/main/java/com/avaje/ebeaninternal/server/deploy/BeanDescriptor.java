@@ -2361,6 +2361,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     }
   }
 
+  @Override
   public BeanProperty getIdProperty() {
     return idProperty;
   }

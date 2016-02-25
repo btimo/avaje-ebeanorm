@@ -456,6 +456,10 @@ public class BeanPropertyAssocMany<T> extends BeanPropertyAssoc<T> {
     return targetDescriptor.getIdBinder().getAssocIdInExpr(prefix);
   }
 
+  @Override
+  public boolean isMany() {
+    return true;
+  }
 
   @Override
   public boolean isAssocId() {

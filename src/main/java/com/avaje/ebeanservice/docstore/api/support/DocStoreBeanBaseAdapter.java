@@ -148,7 +148,9 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
         String path = pathProp.getPath();
         if (path != null) {
           BeanDescriptor<?> targetDesc = desc.getBeanDescriptor(path);
-          targetDesc.registerDocStoreInvalidationPath(desc.getDocStoreQueueId(), path, pathProp.getProperties());
+          String idName = targetDesc.getIdProperty().getName();
+          String fullPath = path + "." + idName;
+          targetDesc.registerDocStoreInvalidationPath(desc.getDocStoreQueueId(), fullPath, pathProp.getProperties());
         }
       }
     }

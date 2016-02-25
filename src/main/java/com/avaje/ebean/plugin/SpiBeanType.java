@@ -41,6 +41,11 @@ public interface SpiBeanType<T> {
   Collection<? extends SpiProperty> allProperties();
 
   /**
+   * Return the Id property.
+   */
+  SpiProperty getIdProperty();
+
+  /**
    * Return the when modified property if there is one defined.
    */
   SpiProperty getWhenModifiedProperty();

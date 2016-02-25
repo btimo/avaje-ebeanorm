@@ -567,6 +567,11 @@ public class BeanProperty implements ElPropertyValue, SpiProperty {
     }
   }
 
+  @Override
+  public boolean isMany() {
+    return false;
+  }
+
   public boolean isAssignableFrom(Class<?> type) {
     return owningType.isAssignableFrom(type);
   }

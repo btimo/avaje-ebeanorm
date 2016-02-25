@@ -15,4 +15,8 @@ public interface SpiProperty {
    */
   Object getVal(Object bean);
 
+  /**
+   * Return true if this is a OneToMany or ManyToMany property.
+   */
+  boolean isMany();
 }
