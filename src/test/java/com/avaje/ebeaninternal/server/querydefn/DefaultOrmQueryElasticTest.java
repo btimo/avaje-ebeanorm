@@ -39,7 +39,7 @@ public class DefaultOrmQueryElasticTest extends BaseElasticTest {
     json.writeEndObject();
     context.flush();
 
-    assertThat(sb.toString()).isEqualTo("{\"filter\":{\"bool\":{\"must\":[{\"term\":{\"customer.name\":\"Rob\"}}]}}}");
+    assertThat(sb.toString()).isEqualTo("{\"filter\":{\"term\":{\"customer.name\":\"Rob\"}}}");
   }
 
   @Test
@@ -58,7 +58,7 @@ public class DefaultOrmQueryElasticTest extends BaseElasticTest {
     spiQuery.writeElastic(context);
     context.flush();
 
-    assertThat(sb.toString()).isEqualTo("{\"fields\":[\"status\",\"customer.name\",\"details.product.id\"],\"query\":{\"filtered\":{\"filter\":{\"bool\":{\"must\":[{\"term\":{\"customer.name\":\"Rob\"}}]}}}}}");
+    assertThat(sb.toString()).isEqualTo("{\"fields\":[\"status\",\"customer.name\",\"details.product.id\"],\"query\":{\"filtered\":{\"filter\":{\"term\":{\"customer.name\":\"Rob\"}}}}}");
   }
 
   @Test
@@ -70,7 +70,7 @@ public class DefaultOrmQueryElasticTest extends BaseElasticTest {
         .query().asElasticQuery();
 
 
-    assertThat(elasticQuery).isEqualTo("{\"fields\":[\"status\"],\"query\":{\"filtered\":{\"filter\":{\"bool\":{\"must\":[{\"term\":{\"customer.name\":\"Rob\"}}]}}}}}");
+    assertThat(elasticQuery).isEqualTo("{\"fields\":[\"status\"],\"query\":{\"filtered\":{\"filter\":{\"term\":{\"customer.name\":\"Rob\"}}}}}");
   }
 
   @Test
@@ -83,6 +83,6 @@ public class DefaultOrmQueryElasticTest extends BaseElasticTest {
         .where().eq("customer.name", "Rob")
         .query().asElasticQuery();
 
-    assertThat(elasticQuery).isEqualTo("{\"from\":3,\"size\":100,\"fields\":[\"status\"],\"query\":{\"filtered\":{\"filter\":{\"bool\":{\"must\":[{\"term\":{\"customer.name\":\"Rob\"}}]}}}}}");
+    assertThat(elasticQuery).isEqualTo("{\"from\":3,\"size\":100,\"fields\":[\"status\"],\"query\":{\"filtered\":{\"filter\":{\"term\":{\"customer.name\":\"Rob\"}}}}}");
   }
 }
