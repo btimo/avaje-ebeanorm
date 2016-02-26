@@ -126,28 +126,6 @@ public class PathProperties {
     return props;
   }
 
-  /**
-   * Set the properties for a given path.
-   */
-  public void put(String path, LinkedHashSet<String> properties) {
-    pathMap.put(path, new Props(this, null, path, properties));
-  }
-
-  /**
-   * Remove a path returning the properties set for that path.
-   */
-  public Set<String> remove(String path) {
-    Props props = pathMap.remove(path);
-    return props == null ? null : props.getProperties();
-  }
-
-  /**
-   * Return a shallow copy of the paths.
-   */
-  public Set<String> getPaths() {
-    return new LinkedHashSet<String>(pathMap.keySet());
-  }
-
   public Collection<Props> getPathProps() {
     return pathMap.values();
   }
@@ -230,7 +208,7 @@ public class PathProperties {
     /**
      * Create a shallow copy of this Props instance.
      */
-    public Props copy(PathProperties newOwner) {
+    private Props copy(PathProperties newOwner) {
       return new Props(newOwner, parentPath, path, new LinkedHashSet<String>(propSet));
     }
 
@@ -282,15 +260,15 @@ public class PathProperties {
     /**
      * Add a child Property set.
      */
-    protected Props addChild(String subpath) {
+    protected Props addChild(String subPath) {
 
-      subpath = subpath.trim();
-      addProperty(subpath);
+      subPath = subPath.trim();
+      addProperty(subPath);
 
-      // build the subpath
-      String p = path == null ? subpath : path + "." + subpath;
-      Props nested = new Props(owner, path, p);
-      owner.pathMap.put(p, nested);
+      // build the subPath
+      String fullPath = path == null ? subPath : path + "." + subPath;
+      Props nested = new Props(owner, path, fullPath);
+      owner.pathMap.put(fullPath, nested);
       return nested;
     }
 
@@ -301,11 +279,11 @@ public class PathProperties {
       propSet.add(property.trim());
     }
 
-    protected void addProps(Props value) {
+    private void addProps(Props value) {
       propSet.addAll(value.propSet);
     }
 
-    protected boolean includes(String prop) {
+    private boolean includes(String prop) {
       return propSet.isEmpty() || propSet.contains(prop) || propSet.contains("*");
     }
   }

@@ -15,7 +15,7 @@ public class PathPropertiesTests {
 
     PathProperties s0 = PathProperties.parse("id,name");
 
-    assertEquals(1, s0.getPaths().size());
+    assertEquals(1, s0.getPathProps().size());
     assertTrue(s0.get(null).contains("id"));
     assertTrue(s0.get(null).contains("name"));
     assertFalse(s0.get(null).contains("status"));
@@ -26,7 +26,7 @@ public class PathPropertiesTests {
 
     PathProperties s0 = PathProperties.parse(" id, name ");
 
-    assertEquals(1, s0.getPaths().size());
+    assertEquals(1, s0.getPathProps().size());
     assertTrue(s0.get(null).contains("id"));
     assertTrue(s0.get(null).contains("name"));
     assertFalse(s0.get(null).contains("status"));
@@ -37,7 +37,7 @@ public class PathPropertiesTests {
 
     PathProperties s0 = PathProperties.parse("(id,name)");
 
-    assertEquals(1, s0.getPaths().size());
+    assertEquals(1, s0.getPathProps().size());
     assertTrue(s0.get(null).contains("id"));
     assertTrue(s0.get(null).contains("name"));
     assertFalse(s0.get(null).contains("status"));
@@ -48,7 +48,7 @@ public class PathPropertiesTests {
 
     PathProperties s0 = PathProperties.parse(":(id,name)");
 
-    assertEquals(1, s0.getPaths().size());
+    assertEquals(1, s0.getPathProps().size());
     assertTrue(s0.get(null).contains("id"));
     assertTrue(s0.get(null).contains("name"));
     assertFalse(s0.get(null).contains("status"));
@@ -58,7 +58,7 @@ public class PathPropertiesTests {
   public void test_nested() {
 
     PathProperties s1 = PathProperties.parse("id,name,shipAddr(*)");
-    assertEquals(2, s1.getPaths().size());
+    assertEquals(2, s1.getPathProps().size());
     assertEquals(3, s1.get(null).size());
     assertTrue(s1.get(null).contains("id"));
     assertTrue(s1.get(null).contains("name"));
@@ -71,7 +71,7 @@ public class PathPropertiesTests {
   public void test_withParenthesesColonNested() {
 
     PathProperties s1 = PathProperties.parse(":(id,name,shipAddr(*))");
-    assertEquals(2, s1.getPaths().size());
+    assertEquals(2, s1.getPathProps().size());
     assertEquals(3, s1.get(null).size());
     assertTrue(s1.get(null).contains("id"));
     assertTrue(s1.get(null).contains("name"));

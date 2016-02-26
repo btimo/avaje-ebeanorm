@@ -1,10 +1,8 @@
 package com.avaje.ebean.text.json;
 
+import com.avaje.ebean.text.PathProperties;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.avaje.ebean.text.PathProperties;
-import com.avaje.ebean.text.json.JsonWriteOptions;
 
 import java.util.Set;
 
@@ -16,7 +14,7 @@ public class JsonWriteOptionsTests {
     JsonWriteOptions options = JsonWriteOptions.parsePath("id,status,name");
     PathProperties pathProps = options.getPathProperties();
     
-    Assert.assertEquals(1, pathProps.getPaths().size());
+    Assert.assertEquals(1, pathProps.getPathProps().size());
     Assert.assertTrue(pathProps.get(null).contains("id"));
     Assert.assertTrue(pathProps.get(null).contains("name"));
     Assert.assertTrue(pathProps.get(null).contains("status"));
@@ -29,7 +27,7 @@ public class JsonWriteOptionsTests {
     JsonWriteOptions options = JsonWriteOptions.parsePath("id,status,name,customer(id,name,address(street,city)),orders(qty,product(sku,prodName))");
     PathProperties pathProps = options.getPathProperties();
 
-    Assert.assertEquals(5, pathProps.getPaths().size());
+    Assert.assertEquals(5, pathProps.getPathProps().size());
     Assert.assertTrue(pathProps.get(null).contains("id"));
     Assert.assertTrue(pathProps.get(null).contains("name"));
     Assert.assertTrue(pathProps.get(null).contains("status"));
