@@ -65,7 +65,6 @@ import com.avaje.ebeaninternal.server.text.json.ReadJson;
 import com.avaje.ebeaninternal.server.text.json.WriteJson;
 import com.avaje.ebeaninternal.server.type.DataBind;
 import com.avaje.ebeaninternal.util.SortByClause;
-import com.avaje.ebeaninternal.util.SortByClause.Property;
 import com.avaje.ebeaninternal.util.SortByClauseParser;
 import com.avaje.ebeanservice.docstore.api.DocStoreBeanAdapter;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;

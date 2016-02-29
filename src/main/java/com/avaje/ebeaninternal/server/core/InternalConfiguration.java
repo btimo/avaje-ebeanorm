@@ -144,6 +144,11 @@ public class InternalConfiguration {
     return service == null ? new NoneDocStoreFactory() : service;
   }
 
+  /**
+   * Return the doc store factory.
+   */
+  public DocStoreFactory getDocStoreFactory() {
+    return docStoreFactory;
   }
 
   /**
