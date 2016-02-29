@@ -2,6 +2,7 @@ package com.avaje.ebeanservice.docstore.none;
 
 import com.avaje.ebean.DocStoreQueueEntry;
 import com.avaje.ebean.DocumentStore;
+import com.avaje.ebean.PagedList;
 import com.avaje.ebean.Query;
 import com.avaje.ebean.QueryEachConsumer;
 import org.jetbrains.annotations.Nullable;
@@ -56,6 +57,11 @@ public class NoneDocStore implements DocumentStore {
   @Nullable
   @Override
   public <T> T getById(Class<T> beanType, Object id) {
+    throw implementationNotInClassPath();
+  }
+
+  @Override
+  public <T> PagedList<T> findPagedList(Query<T> query) {
     throw implementationNotInClassPath();
   }
 

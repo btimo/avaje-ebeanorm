@@ -54,6 +54,15 @@ public interface DocumentStore {
   <T> List<T> findList(Query<T> query);
 
   /**
+   * Execute the query against the document store returning the paged list.
+   * <p>
+   * The query should have <code>firstRow</code> or <code>maxRows</code> set prior to
+   * calling this method.
+   * </p>
+   */
+  <T> PagedList<T> findPagedList(Query<T> query);
+
+  /**
    * Execute the query against the document store with the expectation of a large set of results
    * that are processed in a scrolling resultSet fashion.
    * <p>
