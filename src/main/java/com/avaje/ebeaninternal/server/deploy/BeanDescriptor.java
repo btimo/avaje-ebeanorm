@@ -1452,6 +1452,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, BeanType<T> {
     return namedUpdates.get(name);
   }
 
+  @Override
   public T createBean() {
     return (T)createEntityBean();
   }
@@ -1695,6 +1696,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, BeanType<T> {
   /**
    * Set the bean id value converting if necessary.
    */
+  @Override
   public void setBeanId(T bean, Object idValue) {
     idBinder.convertSetId(idValue, (EntityBean) bean);
   }

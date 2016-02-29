@@ -145,10 +145,10 @@ public interface BeanType<T> {
    */
   String getDocStoreQueueId();
 
-
+  /**
+   * Return the doc store support for this bean type.\
+   */
   BeanDocType<T> docStore();
-
-  DocStoreBeanAdapter<T> docStoreAdapter();
 
   /**
    * Read the JSON content returning the bean.
