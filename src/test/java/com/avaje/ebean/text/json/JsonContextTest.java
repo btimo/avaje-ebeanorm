@@ -4,14 +4,22 @@ import com.avaje.ebean.Ebean;
 import com.avaje.ebean.EbeanServer;
 import com.avaje.ebean.text.PathProperties;
 import com.avaje.tests.model.basic.Customer;
+import com.avaje.tests.model.basic.Order;
+import com.avaje.tests.model.basic.ResetBasicData;
 import com.fasterxml.jackson.core.JsonGenerator;
 import org.junit.Test;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.StrictAssertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class JsonContextTest {
 
@@ -23,6 +31,31 @@ public class JsonContextTest {
     JsonContext json = server.json();
     assertTrue(json.isSupportedType(Customer.class));
     assertFalse(json.isSupportedType(System.class));
+  }
+
+  @Test
+  public void test_jsonWithPersistenceContext() {
+
+    ResetBasicData.reset();
+
+    List<Order> orders = Ebean.find(Order.class)
+        .fetch("customer", "id, name")
+        .where().eq("customer.id", 1)
+        .findList();
+
+    String json = Ebean.json().toJson(orders);
+
+    List<Order> orders1 = Ebean.json().toList(Order.class, json);
+
+    Customer customer = null;
+    for (Order order : orders1) {
+      Customer tempCustomer = order.getCustomer();
+      if (customer == null) {
+        customer = tempCustomer;
+      } else {
+        assertThat(tempCustomer).isSameAs(customer);
+      }
+    }
   }
 
   @Test
@@ -91,7 +124,7 @@ public class JsonContextTest {
     assertSame(customer, custReadVisitor.bean);
     assertEquals("foo", custReadVisitor.unmapped.get("unknownProp"));
     assertEquals(2, custReadVisitor.unmapped.size());
-    assertEquals("foobie", ((Map<String,Object>)custReadVisitor.unmapped.get("extraProp")).get("name"));
+    assertEquals("foobie", ((Map<String, Object>) custReadVisitor.unmapped.get("extraProp")).get("name"));
     assertEquals("bo", ((Map<String, Object>) custReadVisitor.unmapped.get("extraProp")).get("sim"));
 
   }

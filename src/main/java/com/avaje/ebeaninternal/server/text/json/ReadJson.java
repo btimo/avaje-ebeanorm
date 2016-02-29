@@ -1,7 +1,9 @@
 package com.avaje.ebeaninternal.server.text.json;
 
+import com.avaje.ebean.bean.PersistenceContext;
 import com.avaje.ebean.text.json.JsonReadBeanVisitor;
 import com.avaje.ebean.text.json.JsonReadOptions;
+import com.avaje.ebeaninternal.server.transaction.DefaultPersistenceContext;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,17 +33,28 @@ public class ReadJson {
 
   final Object objectMapper;
 
+  final PersistenceContext persistenceContext;
+
   /**
    * Construct with parser and readOptions.
    */
   public ReadJson(JsonParser parser, JsonReadOptions readOptions, Object objectMapper) {
 
+    this.persistenceContext = new DefaultPersistenceContext();
     this.parser = parser;
     this.objectMapper = objectMapper;
 
     // only create visitorMap, pathStack if needed ...
     this.visitorMap = (readOptions == null) ? null : readOptions.getVisitorMap();
     this.pathStack = (visitorMap == null) ? null : new PathStack();
+  }
+
+  /**
+   * Put the bean into the persistence context. If there is already a matching bean in the
+   * persistence context then return that instance else return null.
+   */
+  public Object persistenceContextPutIfAbsent(Object id, Object bean) {
+    return persistenceContext.putIfAbsent(id, bean);
   }
 
   /**
@@ -110,4 +123,5 @@ public class ReadJson {
   public Object readValueUsingObjectMapper(Class<?> propertyType) throws IOException {
       return getObjectMapper().readValue(parser, propertyType);
   }
+
 }
