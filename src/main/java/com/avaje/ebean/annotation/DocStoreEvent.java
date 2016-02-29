@@ -4,8 +4,8 @@ package com.avaje.ebean.annotation;
  * Defines the behavior options when a Insert, Update or Delete event occurs
  * on a bean with an associated ElasticSearch index.
  * <p>
- * For some indexes or some transactions if can be beneficial to queueIndex the
- * event for later processing rather than look to updateAdd ElasticSearch at that time.
+ * For some indexes or some transactions it can be beneficial to queue the event
+ * for later processing rather than look to update ElasticSearch at that time.
  * </p>
  */
 public enum DocStoreEvent {

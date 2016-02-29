@@ -472,7 +472,6 @@ public class TransactionManager {
    * Process the docstore / ElasticSearch updates.
    */
   public void processDocStoreUpdates(DocStoreUpdates docStoreUpdates, int bulkBatchSize) {
-
     docStoreUpdateProcessor.process(docStoreUpdates, bulkBatchSize);
   }
 
