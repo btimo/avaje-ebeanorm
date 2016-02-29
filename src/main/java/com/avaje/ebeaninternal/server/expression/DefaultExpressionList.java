@@ -1,7 +1,16 @@
 package com.avaje.ebeaninternal.server.expression;
 
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.avaje.ebean.*;
 import com.avaje.ebean.event.BeanQueryRequest;
+import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.api.HashQueryPlanBuilder;
 import com.avaje.ebeaninternal.api.ManyWhereJoins;
 import com.avaje.ebeaninternal.api.SpiExpression;
@@ -9,13 +18,7 @@ import com.avaje.ebeaninternal.api.SpiExpressionList;
 import com.avaje.ebeaninternal.api.SpiExpressionRequest;
 import com.avaje.ebeaninternal.api.SpiExpressionValidation;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
-
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 /**
  * Default implementation of ExpressionList.
@@ -57,6 +60,21 @@ public class DefaultExpressionList<T> implements SpiExpressionList<T> {
 
   private DefaultExpressionList() {
     this(null, null, null, new ArrayList<SpiExpression>());
+  }
+
+  @Override
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+
+    int size = list.size();
+    if (size == 1) {
+      list.get(0).writeElastic(context);
+    } else {
+      context.writeBoolMustStart();
+      for (int i = 0; i < size; i++) {
+        list.get(i).writeElastic(context);
+      }
+      context.writeBoolEnd();
+    }
   }
 
   @Override

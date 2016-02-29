@@ -10,6 +10,8 @@ import com.avaje.ebean.bean.PersistenceContext;
 import com.avaje.ebean.event.BeanQueryRequest;
 import com.avaje.ebean.event.readaudit.ReadEvent;
 import com.avaje.ebean.plugin.BeanType;
+import com.avaje.ebean.FetchPath;
+import com.avaje.ebean.text.json.JsonContext;
 import com.avaje.ebeaninternal.api.BindParams;
 import com.avaje.ebeaninternal.api.CQueryPlanKey;
 import com.avaje.ebeaninternal.api.HashQuery;
@@ -25,11 +27,15 @@ import com.avaje.ebeaninternal.server.deploy.BeanPropertyAssocMany;
 import com.avaje.ebeaninternal.server.deploy.DRawSqlSelect;
 import com.avaje.ebeaninternal.server.deploy.DeployNamedQuery;
 import com.avaje.ebeaninternal.server.deploy.TableJoin;
-import com.avaje.ebeaninternal.server.expression.DefaultExpressionList;
+import com.avaje.ebeaninternal.server.expression.ElasticExpressionContext;
 import com.avaje.ebeaninternal.server.expression.SimpleExpression;
 import com.avaje.ebeaninternal.server.query.CancelableQuery;
+import com.avaje.ebeaninternal.server.expression.DefaultExpressionList;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 import javax.persistence.PersistenceException;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -60,7 +66,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
   private transient ProfilingListener profilingListener;
 
-  private transient BeanDescriptor<?> beanDescriptor;
+  private transient BeanDescriptor<T> beanDescriptor;
 
   private boolean cancelled;
 
@@ -241,8 +247,9 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
   private RawSql rawSql;
 
-  public DefaultOrmQuery(Class<T> beanType, EbeanServer server, ExpressionFactory expressionFactory, String query) {
-    this.beanType = beanType;
+  public DefaultOrmQuery(BeanDescriptor<T> desc, EbeanServer server, ExpressionFactory expressionFactory, String query) {
+    this.beanDescriptor = desc;
+    this.beanType = desc.getBeanType();
     this.server = server;
     this.expressionFactory = expressionFactory;
     this.detail = new OrmQueryDetail();
@@ -255,10 +262,11 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   /**
    * Additional supply a query which is parsed.
    */
-  public DefaultOrmQuery(Class<T> beanType, EbeanServer server, ExpressionFactory expressionFactory,
+  public DefaultOrmQuery(BeanDescriptor<T> desc, EbeanServer server, ExpressionFactory expressionFactory,
                          DeployNamedQuery namedQuery) throws PersistenceException {
 
-    this.beanType = beanType;
+    this.beanDescriptor = desc;
+    this.beanType = desc.getBeanType();
     this.server = server;
     this.expressionFactory = expressionFactory;
     this.detail = new OrmQueryDetail();
@@ -280,6 +288,57 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
         setQuery(namedQuery.getQuery());
       }
     }
+  }
+
+  public String asElasticQuery() {
+
+    StringWriter sw = new StringWriter(200);
+    JsonContext json = server.json();
+
+    JsonGenerator generator = json.createGenerator(sw);
+
+    BeanType<T> beanType = server.getPluginApi().getBeanType(this.beanType);
+    ElasticExpressionContext context = new ElasticExpressionContext(generator, beanType);
+
+    try {
+      writeElastic(context);
+      context.flush();
+      return sw.toString();
+
+    } catch (IOException e) {
+      throw new PersistenceIOException(e);
+    }
+  }
+
+  public void writeElastic(ElasticExpressionContext context) throws IOException {
+
+    JsonGenerator json = context.json();
+    json.writeStartObject();
+    if (firstRow > 0) {
+      json.writeNumberField("from", firstRow);
+    }
+    if (maxRows > 0) {
+      json.writeNumberField("size", maxRows);
+    }
+
+    detail.writeElastic(context);
+    context.writeOrderBy(orderBy);
+
+    json.writeFieldName("query");
+    json.writeStartObject();
+
+    if (whereExpressions != null && !whereExpressions.isEmpty()) {
+      json.writeFieldName("filtered");
+      json.writeStartObject();
+      json.writeFieldName("filter");
+      whereExpressions.writeElastic(context);
+      json.writeEndObject();
+    } else {
+      json.writeObjectFieldStart("match_all");
+      json.writeEndObject();
+    }
+    json.writeEndObject();
+    json.writeEndObject();
   }
 
   @Override
@@ -340,7 +399,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   /**
    * Set the BeanDescriptor for the root type of this query.
    */
-  public void setBeanDescriptor(BeanDescriptor<?> beanDescriptor) {
+  public void setBeanDescriptor(BeanDescriptor<T> beanDescriptor) {
     this.beanDescriptor = beanDescriptor;
   }
 
@@ -559,7 +618,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
   public DefaultOrmQuery<T> copy(EbeanServer server) {
 
-    DefaultOrmQuery<T> copy = new DefaultOrmQuery<T>(beanType, server, expressionFactory, (String) null);
+    DefaultOrmQuery<T> copy = new DefaultOrmQuery<T>(beanDescriptor, server, expressionFactory, (String) null);
     copy.name = name;
     copy.includeTableJoin = includeTableJoin;
     copy.profilingListener = profilingListener;

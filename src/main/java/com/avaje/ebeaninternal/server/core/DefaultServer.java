@@ -66,6 +66,7 @@ import com.avaje.ebeaninternal.server.transaction.TransactionManager;
 import com.avaje.ebeaninternal.server.transaction.TransactionScopeManager;
 import com.avaje.ebeaninternal.util.ParamTypeHelper;
 import com.avaje.ebeaninternal.util.ParamTypeHelper.TypeInfo;
+import com.avaje.ebeanservice.docstore.api.DocStoreIntegration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,6 +153,8 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
 
   private final JsonContext jsonContext;
 
+  private final DocumentStore documentStore;
+
   private final MetaInfoManager metaInfoManager;
   
   /**
@@ -219,8 +222,6 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     this.maxCallStack = serverConfig.getMaxCallStack();
 
     this.rollbackOnChecked = serverConfig.isTransactionRollbackOnChecked();
-    this.transactionManager = config.getTransactionManager();
-    this.transactionScopeManager = config.getTransactionScopeManager();
 
     this.persister = config.createPersister(this);
     this.queryEngine = config.createOrmQueryEngine();
@@ -232,6 +233,12 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
 
     this.beanLoader = new DefaultBeanLoader(this);
     this.jsonContext = config.createJsonContext(this);
+
+    DocStoreIntegration docStoreComponents = config.createDocStoreIntegration(this);
+    this.transactionManager = config.createTransactionManager(docStoreComponents.updateProcessor());
+    this.transactionScopeManager = config.createTransactionScopeManager(transactionManager);
+    this.documentStore = docStoreComponents.documentStore();
+
     this.serverPlugins = config.getPlugins();
     this.ddlGenerator = new DdlGenerator(this, serverConfig);
 
@@ -902,7 +909,7 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
 
   public <T> Query<T> createNamedQuery(Class<T> beanType, String namedQuery) throws PersistenceException {
 
-    BeanDescriptor<?> desc = getBeanDescriptor(beanType);
+    BeanDescriptor<T> desc = getBeanDescriptor(beanType);
     if (desc == null) {
       throw new PersistenceException("Is " + beanType.getName() + " an Entity Bean? BeanDescriptor not found?");
     }
@@ -912,7 +919,7 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     }
 
     // this will parse the query
-    return new DefaultOrmQuery<T>(beanType, this, expressionFactory, deployQuery);
+    return new DefaultOrmQuery<T>(desc, this, expressionFactory, deployQuery);
   }
 
   @Override
@@ -947,10 +954,9 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
   }
 
   public <T> Query<T> createQuery(Class<T> beanType, String query) {
-    BeanDescriptor<?> desc = getBeanDescriptor(beanType);
+    BeanDescriptor<T> desc = getBeanDescriptor(beanType);
     if (desc == null) {
-      String m = beanType.getName() + " is NOT an Entity Bean registered with this server?";
-      throw new PersistenceException(m);
+      throw new PersistenceException(beanType.getName() + " is NOT an Entity Bean registered with this server?");
     }
     switch (desc.getEntityType()) {
     case SQL:
@@ -959,10 +965,10 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
       }
       // use the "default" SqlSelect
       DeployNamedQuery defaultSqlSelect = desc.getNamedQuery("default");
-      return new DefaultOrmQuery<T>(beanType, this, expressionFactory, defaultSqlSelect);
+      return new DefaultOrmQuery<T>(desc, this, expressionFactory, defaultSqlSelect);
 
     default:
-      return new DefaultOrmQuery<T>(beanType, this, expressionFactory, query);
+      return new DefaultOrmQuery<T>(desc, this, expressionFactory, query);
     }
   }
 
@@ -2011,6 +2017,16 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     return beanDescriptorManager.getBeanTypes(tableName);
   }
 
+  @Override
+  public BeanType<?> getBeanTypeForQueueId(String queueId) {
+    return getBeanDescriptorByQueueId(queueId);
+  }
+
+  @Override
+  public BeanDescriptor<?> getBeanDescriptorByQueueId(String queueId) {
+    return beanDescriptorManager.getBeanDescriptorByQueueId(queueId);
+  }
+
   /**
    * Return the SPI bean types for the given bean class.
    */
@@ -2111,6 +2127,11 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     }
 
     return callStackFactory.createCallStack(finalTrace);
+  }
+
+  @Override
+  public DocumentStore docStore() {
+    return documentStore;
   }
 
   @Override

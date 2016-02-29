@@ -2,6 +2,7 @@ package com.avaje.ebean.text.json;
 
 import com.avaje.ebean.FetchPath;
 import com.avaje.ebean.config.JsonConfig;
+import com.avaje.ebean.FetchPath;
 import com.avaje.ebean.text.PathProperties;
 
 import java.util.HashMap;

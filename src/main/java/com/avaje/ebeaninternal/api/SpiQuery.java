@@ -16,10 +16,12 @@ import com.avaje.ebeaninternal.server.autotune.ProfilingListener;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.BeanPropertyAssocMany;
 import com.avaje.ebeaninternal.server.deploy.TableJoin;
+import com.avaje.ebeaninternal.server.expression.ElasticExpressionContext;
 import com.avaje.ebeaninternal.server.query.CancelableQuery;
 import com.avaje.ebeaninternal.server.querydefn.NaturalKeyBindParam;
 import com.avaje.ebeaninternal.server.querydefn.OrmQueryDetail;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
@@ -127,6 +129,11 @@ public interface SpiQuery<T> extends Query<T> {
       return (query != null) ? query.getTemporalMode() : TemporalMode.CURRENT;
     }
   }
+
+  /**
+   * Write the query as an elastic search query.
+   */
+  void writeElastic(ElasticExpressionContext context) throws IOException;
 
   /**
    * Return the PersistenceContextScope that this query should use.
@@ -286,7 +293,7 @@ public interface SpiQuery<T> extends Query<T> {
   /**
    * Set the BeanDescriptor for the root type of this query.
    */
-  void setBeanDescriptor(BeanDescriptor<?> desc);
+  void setBeanDescriptor(BeanDescriptor<T> desc);
 
   /**
    * Return the joins required to support predicates on the many properties.
