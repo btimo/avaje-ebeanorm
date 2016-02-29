@@ -13,8 +13,7 @@ public class SimpleExpressionElasticTest extends BaseElasticTest {
   @Test
   public void writeElastic() throws Exception {
 
-    SimpleExpression eqExp= new  SimpleExpression("name", Op.EQ, "rob");
-
+    SimpleExpression eqExp = new  SimpleExpression("name", Op.EQ, "rob");
 
     StringWriter sb = new StringWriter();
     ElasticExpressionContext context = context(sb);

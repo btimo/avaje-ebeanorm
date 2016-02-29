@@ -1,8 +1,8 @@
 package com.avaje.ebeanservice.docstore.api.support;
 
-import com.avaje.ebean.plugin.SpiBeanType;
+import com.avaje.ebean.plugin.BeanType;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
-import com.avaje.ebeanservice.docstore.api.DocStoreUpdateAware;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdate;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
 
 import java.io.IOException;
@@ -10,15 +10,15 @@ import java.io.IOException;
 /**
  * A 'Delete by Id' request that is send to the document store.
  */
-public class DocStoreIndexEvent<T> implements DocStoreUpdateAware {
+public class DocStoreIndexEvent<T> implements DocStoreUpdate {
 
-  final SpiBeanType<T> beanType;
+  final BeanType<T> beanType;
 
   final Object idValue;
 
   final T bean;
 
-  public DocStoreIndexEvent(SpiBeanType<T> beanType, Object idValue, T bean) {
+  public DocStoreIndexEvent(BeanType<T> beanType, Object idValue, T bean) {
     this.beanType = beanType;
     this.idValue = idValue;
     this.bean = bean;
@@ -29,7 +29,7 @@ public class DocStoreIndexEvent<T> implements DocStoreUpdateAware {
    */
   @Override
   public void docStoreUpdate(DocStoreUpdateContext txn) throws IOException {
-    beanType.docStoreIndex(idValue, bean, txn);
+    beanType.docStore().index(idValue, bean, txn);
   }
 
   /**

@@ -588,7 +588,7 @@ public abstract class Model {
     /**
      * Creates a query applying the path properties to set the select and fetch clauses.
      * <p>
-     * Equivalent to {@link Query#apply(com.avaje.ebean.text.PathProperties)}
+     * Equivalent to {@link Query#apply(FetchPath)}
      */
     public Query<T> apply(PathProperties pathProperties) {
       return db().find(type).apply(pathProperties);

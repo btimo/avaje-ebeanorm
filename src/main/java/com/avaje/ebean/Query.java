@@ -1,6 +1,5 @@
 package com.avaje.ebean;
 
-import com.avaje.ebean.text.PathProperties;
 import org.jetbrains.annotations.Nullable;
 
 import javax.persistence.NonUniqueResultException;
@@ -525,7 +524,7 @@ public interface Query<T> extends Serializable {
    * This is typically used when the PathProperties is applied to both the query and the JSON output.
    * </p>
    */
-  Query<T> apply(PathProperties pathProperties);
+  Query<T> apply(FetchPath pathProperties);
 
   /**
    * Execute the query returning the list of Id's.

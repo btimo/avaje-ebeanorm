@@ -8,7 +8,7 @@ import com.avaje.ebean.config.dbplatform.DbType;
 import com.avaje.ebeaninternal.server.type.ScalarTypeEnum;
 import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
 import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyMapping;
-import com.avaje.ebean.plugin.SpiProperty;
+import com.avaje.ebean.plugin.Property;
 import com.avaje.ebean.text.StringParser;
 import com.avaje.ebeaninternal.server.core.InternString;
 import com.avaje.ebeaninternal.server.deploy.generatedproperty.GeneratedProperty;
@@ -30,6 +30,7 @@ import com.avaje.ebeaninternal.server.type.ScalarTypeBoolean;
 import com.avaje.ebeaninternal.util.ValueUtil;
 import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyOptions;
 import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyType;
+import com.avaje.ebeanservice.docstore.api.support.DocStructure;
 import com.fasterxml.jackson.core.JsonToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,7 @@ import java.util.Map;
  * Description of a property of a bean. Includes its deployment information such
  * as database column mapping information.
  */
-public class BeanProperty implements ElPropertyValue, SpiProperty {
+public class BeanProperty implements ElPropertyValue, Property {
 
   private static final Logger logger = LoggerFactory.getLogger(BeanProperty.class);
 

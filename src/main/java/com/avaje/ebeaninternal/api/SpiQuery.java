@@ -11,7 +11,7 @@ import com.avaje.ebean.bean.ObjectGraphNode;
 import com.avaje.ebean.bean.PersistenceContext;
 import com.avaje.ebean.event.BeanQueryRequest;
 import com.avaje.ebean.event.readaudit.ReadEvent;
-import com.avaje.ebean.plugin.SpiBeanType;
+import com.avaje.ebean.plugin.BeanType;
 import com.avaje.ebeaninternal.server.autotune.ProfilingListener;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.BeanPropertyAssocMany;
@@ -685,6 +685,6 @@ public interface SpiQuery<T> extends Query<T> {
   /**
    * Validate the query returning the set of properties with unknown paths.
    */
-  Set<String> validate(SpiBeanType<T> desc);
+  Set<String> validate(BeanType<T> desc);
 
 }

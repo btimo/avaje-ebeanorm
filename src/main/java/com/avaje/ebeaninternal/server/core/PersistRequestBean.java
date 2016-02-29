@@ -22,7 +22,7 @@ import com.avaje.ebeaninternal.server.persist.PersistExecute;
 import com.avaje.ebeaninternal.server.transaction.BeanPersistIdMap;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
-import com.avaje.ebeanservice.docstore.api.DocStoreUpdateAware;
+import com.avaje.ebeanservice.docstore.api.DocStoreUpdate;
 
 import javax.persistence.OptimisticLockException;
 import javax.persistence.PersistenceException;
@@ -35,7 +35,7 @@ import java.util.Set;
 /**
  * PersistRequest for insert update or delete of a bean.
  */
-public final class PersistRequestBean<T> extends PersistRequest implements BeanPersistRequest<T>, DocStoreUpdateAware {
+public final class PersistRequestBean<T> extends PersistRequest implements BeanPersistRequest<T>, DocStoreUpdate {
 
   private final BeanManager<T> beanManager;
 
@@ -911,7 +911,7 @@ public final class PersistRequestBean<T> extends PersistRequest implements BeanP
   public void addDocStoreUpdates(DocStoreUpdates docStoreUpdates) {
 
     if (type == Type.UPDATE) {
-      beanDescriptor.docStoreEmbeddedUpdate(this, docStoreUpdates);
+      beanDescriptor.docStoreUpdateEmbedded(this, docStoreUpdates);
     }
     switch (docStoreEvent) {
       case UPDATE: {

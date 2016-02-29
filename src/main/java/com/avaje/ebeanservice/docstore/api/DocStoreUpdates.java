@@ -15,12 +15,12 @@ public class DocStoreUpdates {
   /**
    * Persist inserts and updates.
    */
-  private final List<DocStoreUpdateAware> persistEvents = new ArrayList<DocStoreUpdateAware>();
+  private final List<DocStoreUpdate> persistEvents = new ArrayList<DocStoreUpdate>();
 
   /**
    * Delete by Id.
    */
-  private final List<DocStoreUpdateAware> deleteEvents = new ArrayList<DocStoreUpdateAware>();
+  private final List<DocStoreUpdate> deleteEvents = new ArrayList<DocStoreUpdate>();
 
   /**
    * Entries sent to the queue for later processing.
@@ -41,14 +41,14 @@ public class DocStoreUpdates {
   /**
    * Add a request for processing via ElasticSearch Bulk API.
    */
-  public void addPersist(DocStoreUpdateAware bulkRequest) {
+  public void addPersist(DocStoreUpdate bulkRequest) {
     persistEvents.add(bulkRequest);
   }
 
   /**
    * Add a request for processing via ElasticSearch Bulk API.
    */
-  public void addDelete(DocStoreUpdateAware bulkRequest) {
+  public void addDelete(DocStoreUpdate bulkRequest) {
     deleteEvents.add(bulkRequest);
   }
 
@@ -78,14 +78,14 @@ public class DocStoreUpdates {
   /**
    * Return the persist insert and update requests to be sent to the document store.
    */
-  public List<DocStoreUpdateAware> getPersistEvents() {
+  public List<DocStoreUpdate> getPersistEvents() {
     return persistEvents;
   }
 
   /**
    * Return delete events.
    */
-  public List<DocStoreUpdateAware> getDeleteEvents() {
+  public List<DocStoreUpdate> getDeleteEvents() {
     return deleteEvents;
   }
 

@@ -1,6 +1,6 @@
 package com.avaje.ebeanservice.docstore.none;
 
-import com.avaje.ebean.plugin.SpiBeanType;
+import com.avaje.ebean.plugin.BeanType;
 import com.avaje.ebeanservice.docstore.api.DocStoreQueryUpdate;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdateProcessor;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
@@ -13,7 +13,7 @@ import java.io.IOException;
 public class NoneDocStoreUpdateProcessor implements DocStoreUpdateProcessor {
 
   @Override
-  public <T> DocStoreQueryUpdate<T> createQueryUpdate(SpiBeanType<T> beanType, int bulkBatchSize) throws IOException {
+  public <T> DocStoreQueryUpdate<T> createQueryUpdate(BeanType<T> beanType, int bulkBatchSize) throws IOException {
     throw NoneDocStore.implementationNotInClassPath();
   }
 

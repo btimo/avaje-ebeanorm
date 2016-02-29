@@ -3,7 +3,7 @@ package com.avaje.ebean.plugin;
 /**
  * A dot notation expression path.
  */
-public interface SpiExpressionPath {
+public interface ExpressionPath {
 
   /**
    * Return true if there is a property on the path that is a many property.

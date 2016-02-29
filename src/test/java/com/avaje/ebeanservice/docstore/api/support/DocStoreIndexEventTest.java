@@ -3,7 +3,8 @@ package com.avaje.ebeanservice.docstore.api.support;
 import com.avaje.ebean.DocStoreQueueEntry;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.EbeanServer;
-import com.avaje.ebean.plugin.SpiBeanType;
+import com.avaje.ebean.plugin.BeanDocType;
+import com.avaje.ebean.plugin.BeanType;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
 import com.avaje.tests.model.basic.Order;
 import org.junit.Test;
@@ -14,16 +15,17 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class DocStoreIndexEventTest {
 
   static EbeanServer server = Ebean.getDefaultServer();
 
-  <T> SpiBeanType<T> beanType(Class<T> cls) {
+  <T> BeanType<T> beanType(Class<T> cls) {
     return server.getPluginApi().getBeanType(cls);
   }
 
-  SpiBeanType<Order> orderType() {
+  BeanType<Order> orderType() {
     return beanType(Order.class);
   }
 
@@ -31,14 +33,17 @@ public class DocStoreIndexEventTest {
   @SuppressWarnings("unchecked")
   public void docStoreUpdate() throws Exception {
 
-    SpiBeanType<Order> mock = (SpiBeanType<Order>)Mockito.mock(SpiBeanType.class);
+    BeanType<Order> mock = (BeanType<Order>)Mockito.mock(BeanType.class);
+    BeanDocType<Order> mockDocType = (BeanDocType<Order>)Mockito.mock(BeanDocType.class);
+    when(mock.docStore()).thenReturn(mockDocType);
 
     Order bean = new Order();
     DocStoreIndexEvent<Order> event = new DocStoreIndexEvent<Order>(mock, 42, bean);
 
     event.docStoreUpdate(null);
 
-    verify(mock, times(1)).docStoreIndex(42, bean, null);
+    verify(mock, times(1)).docStore();
+    verify(mockDocType, times(1)).index(42, bean, null);
   }
 
   @Test

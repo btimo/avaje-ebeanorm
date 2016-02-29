@@ -2,20 +2,39 @@ package com.avaje.ebeaninternal.server.text.json;
 
 import com.avaje.ebean.bean.EntityBean;
 import com.avaje.ebean.config.JsonConfig;
-import com.avaje.ebean.text.json.*;
-import com.avaje.ebean.text.PathProperties;
+import com.avaje.ebean.FetchPath;
+import com.avaje.ebean.text.json.EJson;
+import com.avaje.ebean.text.json.JsonContext;
+import com.avaje.ebean.text.json.JsonIOException;
+import com.avaje.ebean.text.json.JsonReadOptions;
+import com.avaje.ebean.text.json.JsonScalar;
+import com.avaje.ebean.text.json.JsonWriteBeanVisitor;
+import com.avaje.ebean.text.json.JsonWriteOptions;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.type.TypeManager;
 import com.avaje.ebeaninternal.util.ParamTypeHelper;
 import com.avaje.ebeaninternal.util.ParamTypeHelper.ManyType;
 import com.avaje.ebeaninternal.util.ParamTypeHelper.TypeInfo;
-import com.fasterxml.jackson.core.*;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * Default implementation of JsonContext.
@@ -181,7 +200,7 @@ public class DJsonContext implements JsonContext {
   }
 
   @Override
-  public void toJson(Object value, JsonGenerator generator, PathProperties pathProperties) throws JsonIOException {
+  public void toJson(Object value, JsonGenerator generator, FetchPath pathProperties) throws JsonIOException {
     // generator passed in so don't close it
     toJsonNoClose(value, generator, JsonWriteOptions.pathProperties(pathProperties));
   }
@@ -199,12 +218,12 @@ public class DJsonContext implements JsonContext {
   }
 
   @Override
-  public String toJson(Object value, PathProperties pathProperties) throws JsonIOException {
+  public String toJson(Object value, FetchPath pathProperties) throws JsonIOException {
     return toJson(value, JsonWriteOptions.pathProperties(pathProperties));
   }
 
   @Override
-  public void toJson(Object o, Writer writer, PathProperties pathProperties) throws JsonIOException {
+  public void toJson(Object o, Writer writer, FetchPath pathProperties) throws JsonIOException {
     // close generator
     toJsonWithClose(o, createGenerator(writer), JsonWriteOptions.pathProperties(pathProperties));
   }
@@ -288,7 +307,7 @@ public class DJsonContext implements JsonContext {
   }
 
   private WriteJson createWriteJson(JsonGenerator gen, JsonWriteOptions options) {
-    PathProperties pathProps = (options == null) ? null : options.getPathProperties();
+    FetchPath pathProps = (options == null) ? null : options.getPathProperties();
     Map<String, JsonWriteBeanVisitor<?>> visitors = (options == null) ? null : options.getVisitorMap();
     return new WriteJson(server, gen, pathProps, visitors, determineObjectMapper(options), determineInclude(options));
   }

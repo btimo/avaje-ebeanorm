@@ -1,5 +1,6 @@
 package com.avaje.ebean.text;
 
+import com.avaje.ebean.FetchPath;
 import com.avaje.ebean.Query;
 import com.avaje.ebeaninternal.server.query.SplitName;
 
@@ -21,7 +22,7 @@ import java.util.Set;
  * render (JAX-RS JSON / XML).
  * </p>
  */
-public class PathProperties {
+public class PathProperties implements FetchPath {
 
   private final Map<String, Props> pathMap;
 
@@ -45,39 +46,6 @@ public class PathProperties {
     this.pathMap.put(null, rootProps);
   }
 
-  /**
-   * Construct for creating copy.
-   */
-  private PathProperties(PathProperties orig) {
-    this.rootProps = orig.rootProps.copy(this);
-    this.pathMap = new LinkedHashMap<String, Props>(orig.pathMap.size());
-    Set<Entry<String, Props>> entrySet = orig.pathMap.entrySet();
-    for (Entry<String, Props> e : entrySet) {
-      pathMap.put(e.getKey(), e.getValue().copy(this));
-    }
-  }
-
-  /**
-   * Create a copy of this instance so that it can be modified.
-   * <p>
-   * For example, you may want to create a copy to add extra properties to a
-   * path so that they are fetching in a ORM query but perhaps not rendered by
-   * default. That is, use a PathProperties for JSON or XML rendering, but
-   * create a copy, add some extra properties and then use that copy to define
-   * an ORM query.
-   * </p>
-   */
-  public PathProperties copy() {
-    return new PathProperties(this);
-  }
-
-  /**
-   * Return true if there are no paths defined.
-   */
-  public boolean isEmpty() {
-    return pathMap.isEmpty();
-  }
-
   public String toString() {
     return pathMap.toString();
   }
@@ -85,6 +53,7 @@ public class PathProperties {
   /**
    * Return true if the path is defined and has properties.
    */
+  @Override
   public boolean hasPath(String path) {
     Props props = pathMap.get(path);
     return props != null && !props.isEmpty();
@@ -93,7 +62,8 @@ public class PathProperties {
   /**
    * Get the properties for a given path.
    */
-  public LinkedHashSet<String> get(String path) {
+  @Override
+  public Set<String> getProperties(String path) {
     Props props = pathMap.get(path);
     return props == null ? null : props.getProperties();
   }
@@ -102,7 +72,7 @@ public class PathProperties {
     getProps(path).getProperties().add(property);
   }
 
-  public void add(String prefix, PathProperties pathProps) {
+  public void addNested(String prefix, PathProperties pathProps) {
 
     for (Entry<String, Props> entry : pathProps.pathMap.entrySet()) {
 
@@ -133,7 +103,7 @@ public class PathProperties {
   /**
    * Apply these path properties as fetch paths to the query.
    */
-  public void apply(Query<?> query) {
+  public <T> void apply(Query<T> query) {
 
     for (Entry<String, Props> entry : pathMap.entrySet()) {
       String path = entry.getKey();
@@ -203,13 +173,6 @@ public class PathProperties {
 
     private Props(PathProperties owner, String parentPath, String path) {
       this(owner, parentPath, path, new LinkedHashSet<String>());
-    }
-
-    /**
-     * Create a shallow copy of this Props instance.
-     */
-    private Props copy(PathProperties newOwner) {
-      return new Props(newOwner, parentPath, path, new LinkedHashSet<String>(propSet));
     }
 
     public String getPath() {

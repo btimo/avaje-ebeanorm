@@ -29,12 +29,10 @@ import com.avaje.ebean.event.readaudit.ReadAuditPrepare;
 import com.avaje.ebean.event.readaudit.ReadEvent;
 import com.avaje.ebean.meta.MetaBeanInfo;
 import com.avaje.ebean.meta.MetaQueryPlanStatistic;
-import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
-import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
-import com.avaje.ebean.plugin.SpiBeanType;
-import com.avaje.ebean.plugin.SpiExpressionPath;
-import com.avaje.ebean.plugin.SpiProperty;
-import com.avaje.ebean.text.PathProperties;
+import com.avaje.ebean.plugin.BeanDocType;
+import com.avaje.ebean.plugin.BeanType;
+import com.avaje.ebean.plugin.ExpressionPath;
+import com.avaje.ebean.plugin.Property;
 import com.avaje.ebean.text.json.JsonReadOptions;
 import com.avaje.ebeaninternal.api.CQueryPlanKey;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
@@ -67,11 +65,12 @@ import com.avaje.ebeaninternal.server.text.json.ReadJson;
 import com.avaje.ebeaninternal.server.text.json.WriteJson;
 import com.avaje.ebeaninternal.server.type.DataBind;
 import com.avaje.ebeaninternal.util.SortByClause;
-import com.avaje.ebeaninternal.util.SortByClause.Property;
 import com.avaje.ebeaninternal.util.SortByClauseParser;
 import com.avaje.ebeanservice.docstore.api.DocStoreBeanAdapter;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
+import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
+import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
 import com.fasterxml.jackson.core.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,13 +86,12 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Describes Beans including their deployment information.
  */
-public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
+public class BeanDescriptor<T> implements MetaBeanInfo, BeanType<T> {
 
   private static final Logger logger = LoggerFactory.getLogger(BeanDescriptor.class);
 
@@ -919,18 +917,23 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   @Override
-  public String getDocStoreIndexType() {
-    return docStoreAdapter.getIndexType();
-  }
-
-  @Override
-  public String getDocStoreIndexName() {
-    return docStoreAdapter.getIndexName();
-  }
-
-  @Override
   public DocumentMapping getDocMapping() {
     return docMapping;
+  }
+
+  /**
+   * Return the doc store helper for this bean type.
+   */
+  @Override
+  public BeanDocType docStore() {
+    return docStoreAdapter;
+  }
+
+  /**
+   * Return doc store adapter for internal use for processing persist requests.
+   */
+  public DocStoreBeanAdapter<T> docStoreAdapter() {
+    return docStoreAdapter;
   }
 
   /**
@@ -949,52 +952,11 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   /**
-   * Register a doc store embedded/nested path that invalidates a document.
-   */
-  public void registerDocStoreInvalidationPath(String queueId, String path, Set<String> properties) {
-    docStoreAdapter.registerDocStoreInvalidationPath(queueId, path, properties);
-  }
-
-  /**
-   * Check if this update invalidates an embedded part of a doc store document.
-   */
-  public void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
-    docStoreAdapter.docStoreEmbeddedUpdate(request, docStoreUpdates);
-  }
-
-  @Override
-  public void docStoreApplyPath(Query<T> query) {
-    docStoreAdapter.docStoreApplyPath(query);
-  }
-
-  /**
-   * Return a 'raw' property mapped for the given property.
-   * If none exists the given property is returned.
-   */
-  public String docStoreRawProperty(String property) {
-    return docStoreAdapter.docStoreRawProperty(property);
-  }
-
-  @Override
-  public PathProperties docStoreNested(String path) {
-    return docStoreAdapter.docStoreNested(path);
-  }
-
-  /**
    * Return the type of DocStoreEvent that should occur for this type of persist request
    * given the transactions requested mode.
    */
   public DocStoreEvent getDocStoreEvent(PersistRequest.Type persistType, DocStoreEvent txnMode) {
-    return docStoreAdapter.getDocStoreEvent(persistType, txnMode);
-  }
-
-  public void docStoreDeleteById(Object idValue, DocStoreUpdateContext txn) throws IOException {
-    docStoreAdapter.deleteById(idValue, txn);
-  }
-
-  @Override
-  public void docStoreIndex(Object idValue, T bean, DocStoreUpdateContext bulkUpdate) throws IOException {
-    docStoreAdapter.index(idValue, bean, bulkUpdate);
+    return docStoreAdapter.getEvent(persistType, txnMode);
   }
 
   public void docStoreInsert(Object idValue, PersistRequestBean<T> persistRequest, DocStoreUpdateContext bulkUpdate) throws IOException {
@@ -1005,8 +967,15 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     docStoreAdapter.update(idValue, persistRequest, bulkUpdate);
   }
 
-  public void docStoreUpdateEmbedded(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException {
-    docStoreAdapter.update(idValue, embeddedProperty, embeddedRawContent, txn);
+  /**
+   * Check if this update invalidates an embedded part of a doc store document.
+   */
+  public void docStoreUpdateEmbedded(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
+    docStoreAdapter.updateEmbedded(request, docStoreUpdates);
+  }
+
+  public void docStoreDeleteById(Object idValue, DocStoreUpdateContext txn) throws IOException {
+    docStoreAdapter.deleteById(idValue, txn);
   }
 
   public T publish(T draftBean, T liveBean) {
@@ -1561,7 +1530,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   @Override
-  public SpiBeanType<?> getBeanTypeAtPath(String path) {
+  public BeanType<?> getBeanTypeAtPath(String path) {
     return getBeanDescriptor(path);
   }
 
@@ -1742,7 +1711,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   @Override
-  public SpiProperty property(String propName) {
+  public Property getProperty(String propName) {
     return getBeanProperty(propName);
   }
 
@@ -1809,16 +1778,16 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
     // create a compound comparator based on the list of properties
     ElComparator<T>[] comparators = new ElComparator[sortBy.size()];
 
-    List<Property> sortProps = sortBy.getProperties();
+    List<SortByClause.Property> sortProps = sortBy.getProperties();
     for (int i = 0; i < sortProps.size(); i++) {
-      Property sortProperty = sortProps.get(i);
+      SortByClause.Property sortProperty = sortProps.get(i);
       comparators[i] = createPropertyComparator(sortProperty);
     }
 
     return new ElComparatorCompound<T>(comparators);
   }
 
-  private ElComparator<T> createPropertyComparator(Property sortProp) {
+  private ElComparator<T> createPropertyComparator(SortByClause.Property sortProp) {
 
     ElPropertyValue elGetValue = getElGetValue(sortProp.getName());
 
@@ -1854,7 +1823,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   @Override
-  public SpiExpressionPath expressionPath(String path) {
+  public ExpressionPath getExpressionPath(String path) {
     return getElGetValue(path);
   }
 
@@ -2319,7 +2288,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, SpiBeanType<T> {
   }
 
   @Override
-  public Collection<? extends SpiProperty> allProperties() {
+  public Collection<? extends Property> allProperties() {
     return propertiesAll();
   }
 

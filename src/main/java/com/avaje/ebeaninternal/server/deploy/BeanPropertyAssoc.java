@@ -9,6 +9,7 @@ import com.avaje.ebeaninternal.server.query.SplitName;
 import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
 import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyMapping;
 import com.avaje.ebeanservice.docstore.api.mapping.DocPropertyType;
+import com.avaje.ebeanservice.docstore.api.support.DocStructure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -266,9 +267,7 @@ public abstract class BeanPropertyAssoc<T> extends BeanProperty {
     if (mapping.includesPath(prefix, name)) {
       String fullName = SplitName.add(prefix, name);
 
-      boolean isMany = (this instanceof BeanPropertyAssocMany<?>);
-
-      DocPropertyType type = isMany ? DocPropertyType.LIST : DocPropertyType.OBJECT;
+      DocPropertyType type = isMany() ? DocPropertyType.LIST : DocPropertyType.OBJECT;
       DocPropertyMapping nested = new DocPropertyMapping(name, type);
 
       mapping.push(nested);

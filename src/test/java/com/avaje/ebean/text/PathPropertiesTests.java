@@ -1,5 +1,6 @@
 package com.avaje.ebean.text;
 
+import com.avaje.ebean.FetchPath;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,9 +17,9 @@ public class PathPropertiesTests {
     PathProperties s0 = PathProperties.parse("id,name");
 
     assertEquals(1, s0.getPathProps().size());
-    assertTrue(s0.get(null).contains("id"));
-    assertTrue(s0.get(null).contains("name"));
-    assertFalse(s0.get(null).contains("status"));
+    assertTrue(s0.getProperties(null).contains("id"));
+    assertTrue(s0.getProperties(null).contains("name"));
+    assertFalse(s0.getProperties(null).contains("status"));
   }
 
   @Test
@@ -27,9 +28,9 @@ public class PathPropertiesTests {
     PathProperties s0 = PathProperties.parse(" id, name ");
 
     assertEquals(1, s0.getPathProps().size());
-    assertTrue(s0.get(null).contains("id"));
-    assertTrue(s0.get(null).contains("name"));
-    assertFalse(s0.get(null).contains("status"));
+    assertTrue(s0.getProperties(null).contains("id"));
+    assertTrue(s0.getProperties(null).contains("name"));
+    assertFalse(s0.getProperties(null).contains("status"));
   }
 
   @Test
@@ -38,9 +39,9 @@ public class PathPropertiesTests {
     PathProperties s0 = PathProperties.parse("(id,name)");
 
     assertEquals(1, s0.getPathProps().size());
-    assertTrue(s0.get(null).contains("id"));
-    assertTrue(s0.get(null).contains("name"));
-    assertFalse(s0.get(null).contains("status"));
+    assertTrue(s0.getProperties(null).contains("id"));
+    assertTrue(s0.getProperties(null).contains("name"));
+    assertFalse(s0.getProperties(null).contains("status"));
   }
 
   @Test
@@ -49,9 +50,9 @@ public class PathPropertiesTests {
     PathProperties s0 = PathProperties.parse(":(id,name)");
 
     assertEquals(1, s0.getPathProps().size());
-    assertTrue(s0.get(null).contains("id"));
-    assertTrue(s0.get(null).contains("name"));
-    assertFalse(s0.get(null).contains("status"));
+    assertTrue(s0.getProperties(null).contains("id"));
+    assertTrue(s0.getProperties(null).contains("name"));
+    assertFalse(s0.getProperties(null).contains("status"));
   }
 
   @Test
@@ -59,12 +60,12 @@ public class PathPropertiesTests {
 
     PathProperties s1 = PathProperties.parse("id,name,shipAddr(*)");
     assertEquals(2, s1.getPathProps().size());
-    assertEquals(3, s1.get(null).size());
-    assertTrue(s1.get(null).contains("id"));
-    assertTrue(s1.get(null).contains("name"));
-    assertTrue(s1.get(null).contains("shipAddr"));
-    assertTrue(s1.get("shipAddr").contains("*"));
-    assertEquals(1, s1.get("shipAddr").size());
+    assertEquals(3, s1.getProperties(null).size());
+    assertTrue(s1.getProperties(null).contains("id"));
+    assertTrue(s1.getProperties(null).contains("name"));
+    assertTrue(s1.getProperties(null).contains("shipAddr"));
+    assertTrue(s1.getProperties("shipAddr").contains("*"));
+    assertEquals(1, s1.getProperties("shipAddr").size());
   }
 
   @Test
@@ -72,21 +73,21 @@ public class PathPropertiesTests {
 
     PathProperties s1 = PathProperties.parse(":(id,name,shipAddr(*))");
     assertEquals(2, s1.getPathProps().size());
-    assertEquals(3, s1.get(null).size());
-    assertTrue(s1.get(null).contains("id"));
-    assertTrue(s1.get(null).contains("name"));
-    assertTrue(s1.get(null).contains("shipAddr"));
-    assertTrue(s1.get("shipAddr").contains("*"));
-    assertEquals(1, s1.get("shipAddr").size());
+    assertEquals(3, s1.getProperties(null).size());
+    assertTrue(s1.getProperties(null).contains("id"));
+    assertTrue(s1.getProperties(null).contains("name"));
+    assertTrue(s1.getProperties(null).contains("shipAddr"));
+    assertTrue(s1.getProperties("shipAddr").contains("*"));
+    assertEquals(1, s1.getProperties("shipAddr").size());
   }
 
   @Test
   public void test_add() {
 
     PathProperties root = PathProperties.parse("status,date");
-    root.add("customer", PathProperties.parse("id,name"));
+    root.addNested("customer", PathProperties.parse("id,name"));
 
-    PathProperties expect = PathProperties.parse("status,date,customer(id,name)");
+    FetchPath expect = PathProperties.parse("status,date,customer(id,name)");
     assertThat(root.toString()).isEqualTo(expect.toString());
   }
 
@@ -94,17 +95,17 @@ public class PathPropertiesTests {
   public void test_add_nested() {
 
     PathProperties root = PathProperties.parse("status,date");
-    root.add("customer", PathProperties.parse("id,name,address(line1,city)"));
+    root.addNested("customer", PathProperties.parse("id,name,address(line1,city)"));
 
-    PathProperties expect = PathProperties.parse("status,date,customer(id,name,address(line1,city))");
+    FetchPath expect = PathProperties.parse("status,date,customer(id,name,address(line1,city))");
     assertThat(root.toString()).isEqualTo(expect.toString());
   }
 
   @Test
   public void test_all_properties() {
 
-    PathProperties root = PathProperties.parse("*");
-    assertThat(root.get(null)).containsExactly("*");
+    FetchPath root = PathProperties.parse("*");
+    assertThat(root.getProperties(null)).containsExactly("*");
   }
 
   @Test
@@ -114,7 +115,7 @@ public class PathPropertiesTests {
     //PathProperties.Props rootProps = root.getProps(null);
     PathProperties.Props customerProps = root.getProps("customer");
 
-    assertThat(root.get(null)).containsExactly("*", "customer");
+    assertThat(root.getProperties(null)).containsExactly("*", "customer");
     assertThat(customerProps.getPropertiesAsString()).isEqualTo("*");
   }
 

@@ -1,8 +1,9 @@
 package com.avaje.ebeaninternal.server.expression;
 
 import com.avaje.ebean.OrderBy;
-import com.avaje.ebean.plugin.SpiBeanType;
-import com.avaje.ebean.plugin.SpiExpressionPath;
+import com.avaje.ebean.plugin.BeanType;
+import com.avaje.ebean.plugin.ExpressionPath;
+import com.avaje.ebeaninternal.server.query.SplitName;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
@@ -31,9 +32,11 @@ public class ElasticExpressionContext {
 
   private final JsonGenerator json;
 
-  private final SpiBeanType<?> desc;
+  private final BeanType<?> desc;
 
-  public ElasticExpressionContext(JsonGenerator json, SpiBeanType<?> desc) {
+  private String currentNestedPath;
+
+  public ElasticExpressionContext(JsonGenerator json, BeanType<?> desc) {
     this.json = json;
     this.desc = desc;
   }
@@ -49,6 +52,7 @@ public class ElasticExpressionContext {
    * Flush the JsonGenerator buffer.
    */
   public void flush() throws IOException {
+    endNested();
     json.flush();
   }
 
@@ -56,7 +60,7 @@ public class ElasticExpressionContext {
    * Return true if the path contains a many.
    */
   public boolean containsMany(String path) {
-    SpiExpressionPath elPath = desc.expressionPath(path);
+    ExpressionPath elPath = desc.getExpressionPath(path);
     return elPath == null || elPath.containsMany();
   }
 
@@ -64,11 +68,10 @@ public class ElasticExpressionContext {
    * Return an associated 'raw' property given the property name.
    */
   private String rawProperty(String propertyName) {
-    return desc.docStoreRawProperty(propertyName);
+    return desc.docStore().rawProperty(propertyName);
   }
 
   public void writeBoolStart(boolean conjunction) throws IOException {
-
     writeBoolStart((conjunction) ? MUST : SHOULD);
   }
 
@@ -81,6 +84,7 @@ public class ElasticExpressionContext {
   }
 
   private void writeBoolStart(String type) throws IOException {
+    endNested();
     json.writeStartObject();
     json.writeObjectFieldStart(BOOL);
     json.writeArrayFieldStart(type);
@@ -99,6 +103,7 @@ public class ElasticExpressionContext {
 
   public void writeRange(String propertyName, String rangeType, Object value) throws IOException {
 
+    prepareNestedPath(propertyName);
     json.writeStartObject();
     json.writeObjectFieldStart(RANGE);
     json.writeObjectFieldStart(rawProperty(propertyName));
@@ -111,6 +116,7 @@ public class ElasticExpressionContext {
 
   public void writeRange(String propertyName, Op lowOp, Object valueLow, Op highOp, Object valueHigh) throws IOException {
 
+    prepareNestedPath(propertyName);
     json.writeStartObject();
     json.writeObjectFieldStart(RANGE);
     json.writeObjectFieldStart(rawProperty(propertyName));
@@ -125,6 +131,7 @@ public class ElasticExpressionContext {
 
   public void writeTerms(String propertyName, Object[] values) throws IOException {
 
+    prepareNestedPath(propertyName);
     json.writeStartObject();
     json.writeObjectFieldStart(TERMS);
     json.writeArrayFieldStart(rawProperty(propertyName));
@@ -139,6 +146,7 @@ public class ElasticExpressionContext {
 
   public void writeIds(List<?> idList) throws IOException {
 
+    endNested();
     json.writeStartObject();
     json.writeObjectFieldStart(IDS);
     json.writeArrayFieldStart(VALUES);
@@ -163,15 +171,18 @@ public class ElasticExpressionContext {
 
   public void writePrefix(String propertyName, String value) throws IOException {
     // use analysed field
+    prepareNestedPath(propertyName);
     writeRawType(PREFIX, propertyName, value);
   }
 
   public void writeMatch(String propertyName, String value) throws IOException {
     // use analysed field
+    prepareNestedPath(propertyName);
     writeRawType(MATCH, propertyName, value);
   }
 
   public void writeWildcard(String propertyName, String value) throws IOException {
+    prepareNestedPath(propertyName);
     writeRawType(WILDCARD, propertyName, value);
   }
 
@@ -179,22 +190,25 @@ public class ElasticExpressionContext {
     json.writeRaw(jsonExpression);
   }
 
-  public void writeExists(boolean notNull, String propName) throws IOException {
+  public void writeExists(boolean notNull, String propertyName) throws IOException {
+
+    prepareNestedPath(propertyName);
     if (!notNull) {
       writeBoolMustNotStart();
     }
-    writeExists(propName);
+    writeExists(propertyName);
     if (!notNull) {
       writeBoolEnd();
     }
   }
 
-  private void writeExists(String propName) throws IOException {
-    writeRawType(EXISTS, FIELD, propName);
+  private void writeExists(String propertyName) throws IOException {
+    writeRawType(EXISTS, FIELD, propertyName);
   }
 
   private void writeRawType(String type, String propertyName, Object value) throws IOException {
 
+    prepareNestedPath(propertyName);
     json.writeStartObject();
     json.writeObjectFieldStart(type);
     json.writeFieldName(propertyName);
@@ -203,27 +217,31 @@ public class ElasticExpressionContext {
     json.writeEndObject();
   }
 
-  public void writeSimple(Op type, String propName, Object value) throws IOException {
+
+
+  public void writeSimple(Op type, String propertyName, Object value) throws IOException {
+
+    prepareNestedPath(propertyName);
     switch (type) {
       case EQ:
-        writeTerm(propName, value);
+        writeTerm(propertyName, value);
         break;
       case NOT_EQ:
         writeBoolMustNotStart();
-        writeTerm(propName, value);
+        writeTerm(propertyName, value);
         writeBoolEnd();
         break;
       case EXISTS:
-        writeExists(true, propName);
+        writeExists(true, propertyName);
         break;
       case NOT_EXISTS:
-        writeExists(false, propName);
+        writeExists(false, propertyName);
         break;
       case BETWEEN:
         throw new IllegalStateException("BETWEEN Not expected in SimpleExpression?");
 
       default:
-        writeRange(propName, type.docExp(), value);
+        writeRange(propertyName, type.docExp(), value);
     }
 
   }
@@ -234,17 +252,52 @@ public class ElasticExpressionContext {
   public <T> void writeOrderBy(OrderBy<T> orderBy) throws IOException {
 
     if (orderBy != null && !orderBy.isEmpty()) {
-
       json.writeArrayFieldStart("sort");
       for (OrderBy.Property property : orderBy.getProperties()) {
         json.writeStartObject();
         json.writeObjectFieldStart(rawProperty(property.getProperty()));
-        json.writeStringField("order", property.isAscending()? "asc" : "desc");
+        json.writeStringField("order", property.isAscending() ? "asc" : "desc");
         json.writeEndObject();
         json.writeEndObject();
       }
       json.writeEndArray();
     }
+  }
 
+  private void prepareNestedPath(String propName) throws IOException {
+    ExpressionPath exprPath = desc.getExpressionPath(propName);
+    if (exprPath != null && exprPath.containsMany()) {
+      String[] manyPath = SplitName.splitBegin(propName);
+      startNested(manyPath[0]);
+    } else {
+      endNested();
+    }
+  }
+
+  private void startNested(String nestedPath) throws IOException {
+
+    if (currentNestedPath != null) {
+      if (currentNestedPath.equals(nestedPath)) {
+        // just add to currentNestedPath
+        return;
+      } else {
+        endNested();
+      }
+    }
+    currentNestedPath = nestedPath;
+
+    json.writeStartObject();
+    json.writeObjectFieldStart("nested");
+    json.writeStringField("path", nestedPath);
+    json.writeFieldName("filter");
+  }
+
+  private void endNested() throws IOException {
+    if (currentNestedPath != null) {
+      currentNestedPath = null;
+      //json.writeEndObject();
+      json.writeEndObject();
+      json.writeEndObject();
+    }
   }
 }

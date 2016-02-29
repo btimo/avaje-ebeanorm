@@ -1,6 +1,6 @@
 package com.avaje.ebeanservice.docstore.api;
 
-import com.avaje.ebean.plugin.SpiBeanType;
+import com.avaje.ebean.plugin.BeanType;
 
 import java.io.IOException;
 
@@ -16,7 +16,7 @@ public interface DocStoreUpdateProcessor {
   /**
    * Create a processor to handle updates per bean via a findEach query.
    */
-  <T> DocStoreQueryUpdate<T> createQueryUpdate(SpiBeanType<T> beanType, int bulkBatchSize) throws IOException;
+  <T> DocStoreQueryUpdate<T> createQueryUpdate(BeanType<T> beanType, int bulkBatchSize) throws IOException;
 
   /**
    * Process all the updates for a transaction.

@@ -1,5 +1,6 @@
 package com.avaje.ebeanservice.docstore.api.support;
 
+import com.avaje.ebean.FetchPath;
 import com.avaje.ebean.Query;
 import com.avaje.ebean.annotation.DocStore;
 import com.avaje.ebean.annotation.DocStoreEvent;
@@ -9,13 +10,12 @@ import com.avaje.ebeaninternal.server.core.PersistRequest;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
 import com.avaje.ebeaninternal.server.deploy.BeanProperty;
-import com.avaje.ebeaninternal.server.deploy.DocStructure;
 import com.avaje.ebeaninternal.server.deploy.meta.DeployBeanDescriptor;
 import com.avaje.ebeanservice.docstore.api.DocStoreBeanAdapter;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdateContext;
 import com.avaje.ebeanservice.docstore.api.DocStoreUpdates;
-import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
 import com.avaje.ebeanservice.docstore.api.mapping.DocMappingBuilder;
+import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -123,6 +123,8 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
 
     sortableMap = mappingBuilder.collectSortable();
 
+    docStructure.prepareMany(desc);
+
     return mappingBuilder.create(queueId, indexName, indexType);
   }
 
@@ -131,7 +133,22 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   }
 
   @Override
-  public String docStoreRawProperty(String property) {
+  public String getIndexType() {
+    return indexType;
+  }
+
+  @Override
+  public String getIndexName() {
+    return indexName;
+  }
+
+  @Override
+  public void applyPath(Query<T> query) {
+    query.apply(docStructure.doc());
+  }
+
+  @Override
+  public String rawProperty(String property) {
 
     String rawProperty = sortableMap.get(property);
     return rawProperty == null ? property : rawProperty;
@@ -150,7 +167,7 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
           BeanDescriptor<?> targetDesc = desc.getBeanDescriptor(path);
           String idName = targetDesc.getIdProperty().getName();
           String fullPath = path + "." + idName;
-          targetDesc.registerDocStoreInvalidationPath(desc.getDocStoreQueueId(), fullPath, pathProp.getProperties());
+          targetDesc.docStoreAdapter().registerInvalidationPath(desc.getDocStoreQueueId(), fullPath, pathProp.getProperties());
         }
       }
     }
@@ -160,7 +177,7 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
    * Register a doc store invalidation listener for the given bean type, path and properties.
    */
   @Override
-  public void registerDocStoreInvalidationPath(String queueId, String path, Set<String> properties) {
+  public void registerInvalidationPath(String queueId, String path, Set<String> properties) {
 
     embeddedInvalidation.add(getEmbeddedInvalidation(queueId, path, properties));
   }
@@ -196,7 +213,7 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   }
 
   @Override
-  public void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
+  public void updateEmbedded(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates) {
     for (int i = 0; i < embeddedInvalidation.size(); i++) {
       embeddedInvalidation.get(i).embeddedInvalidate(request, docStoreUpdates);
     }
@@ -231,19 +248,12 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
     return docStructure;
   }
 
-  @Override
-  public PathProperties docStorePaths() {
-    return docStructure.doc();
+  public FetchPath getEmbedded(String path) {
+    return docStructure.getEmbedded(path);
   }
 
-  @Override
-  public PathProperties docStoreNested(String path) {
-    return docStructure.getNested(path);
-  }
-
-  @Override
-  public void docStoreApplyPath(Query<T> query) {
-    query.apply(docStructure.doc());
+  public FetchPath getEmbeddedManyRoot(String path) {
+    return docStructure.getEmbeddedManyRoot(path);
   }
 
   @Override
@@ -257,7 +267,7 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   }
 
   @Override
-  public DocStoreEvent getDocStoreEvent(PersistRequest.Type persistType, DocStoreEvent txnMode) {
+  public DocStoreEvent getEvent(PersistRequest.Type persistType, DocStoreEvent txnMode) {
 
     if (txnMode == null) {
       return getDocStoreEvent(persistType);
@@ -288,16 +298,6 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   }
 
   @Override
-  public String getIndexType() {
-    return indexType;
-  }
-
-  @Override
-  public String getIndexName() {
-    return indexName;
-  }
-
-  @Override
   public abstract void deleteById(Object idValue, DocStoreUpdateContext txn) throws IOException;
 
   @Override
@@ -310,6 +310,6 @@ public abstract class DocStoreBeanBaseAdapter<T> implements DocStoreBeanAdapter<
   public abstract void update(Object idValue, PersistRequestBean<T> persistRequest, DocStoreUpdateContext txn) throws IOException;
 
   @Override
-  public abstract void update(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException;
+  public abstract void updateEmbedded(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException;
 
 }

@@ -3,6 +3,7 @@ package com.avaje.ebean.plugin;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.EbeanServer;
 import com.avaje.ebean.text.PathProperties;
+import com.avaje.ebean.FetchPath;
 import com.avaje.ebeaninternal.api.SpiQuery;
 import com.avaje.ebeaninternal.server.querydefn.OrmQueryDetail;
 import com.avaje.tests.model.basic.Customer;
@@ -19,7 +20,7 @@ public class SpiBeanTypeTest {
 
   static EbeanServer server = Ebean.getDefaultServer();
 
-  <T> SpiBeanType<T> beanType(Class<T> cls) {
+  <T> BeanType<T> beanType(Class<T> cls) {
     return server.getPluginApi().getBeanType(cls);
   }
 
@@ -30,22 +31,22 @@ public class SpiBeanTypeTest {
 
   @Test
   public void getTypeAtPath_when_ManyToOne() throws Exception {
-    SpiBeanType<Order> orderType = beanType(Order.class);
-    SpiBeanType<?> customerType = orderType.getBeanTypeAtPath("customer");
+    BeanType<Order> orderType = beanType(Order.class);
+    BeanType<?> customerType = orderType.getBeanTypeAtPath("customer");
     assertThat(customerType.getBeanType()).isEqualTo(Customer.class);
   }
 
   @Test
   public void getTypeAtPath_when_OneToMany() throws Exception {
-    SpiBeanType<Order> orderType = beanType(Order.class);
-    SpiBeanType<?> detailsType = orderType.getBeanTypeAtPath("details");
+    BeanType<Order> orderType = beanType(Order.class);
+    BeanType<?> detailsType = orderType.getBeanTypeAtPath("details");
     assertThat(detailsType.getBeanType()).isEqualTo(OrderDetail.class);
   }
 
   @Test
   public void getTypeAtPath_when_nested() throws Exception {
-    SpiBeanType<Order> orderType = beanType(Order.class);
-    SpiBeanType<?> productType = orderType.getBeanTypeAtPath("details.product");
+    BeanType<Order> orderType = beanType(Order.class);
+    BeanType<?> productType = orderType.getBeanTypeAtPath("details.product");
     assertThat(productType.getBeanType()).isEqualTo(Product.class);
   }
 
@@ -60,7 +61,7 @@ public class SpiBeanTypeTest {
 
     Order order = new Order();
     order.setStatus(Order.Status.APPROVED);
-    SpiProperty statusProperty = beanType(Order.class).property("status");
+    Property statusProperty = beanType(Order.class).getProperty("status");
 
     assertThat(statusProperty.getVal(order)).isEqualTo(order.getStatus());
   }
@@ -110,23 +111,23 @@ public class SpiBeanTypeTest {
   @Test
   public void getDocStoreIndexType() throws Exception {
 
-    assertThat(beanType(Order.class).getDocStoreIndexType()).isEqualTo("order");
-    assertThat(beanType(Customer.class).getDocStoreIndexType()).isEqualTo("customer");
+    assertThat(beanType(Order.class).docStore().getIndexType()).isEqualTo("order");
+    assertThat(beanType(Customer.class).docStore().getIndexType()).isEqualTo("customer");
   }
 
   @Test
   public void getDocStoreIndexName() throws Exception {
 
-    assertThat(beanType(Order.class).getDocStoreIndexType()).isEqualTo("order");
-    assertThat(beanType(Customer.class).getDocStoreIndexType()).isEqualTo("customer");
+    assertThat(beanType(Order.class).docStore().getIndexType()).isEqualTo("order");
+    assertThat(beanType(Customer.class).docStore().getIndexType()).isEqualTo("customer");
   }
 
   @Test
   public void docStoreNested() throws Exception {
 
-    PathProperties parse = PathProperties.parse("id,name");
+    FetchPath parse = PathProperties.parse("id,name");
 
-    PathProperties nestedCustomer = beanType(Order.class).docStoreNested("customer");
+    FetchPath nestedCustomer = beanType(Order.class).docStore().getEmbedded("customer");
     assertThat(nestedCustomer.toString()).isEqualTo(parse.toString());
   }
 
@@ -134,7 +135,7 @@ public class SpiBeanTypeTest {
   public void docStoreApplyPath() throws Exception {
 
     SpiQuery<Order> orderQuery = (SpiQuery<Order>)server.find(Order.class);
-    beanType(Order.class).docStoreApplyPath(orderQuery);
+    beanType(Order.class).docStore().applyPath(orderQuery);
 
     OrmQueryDetail detail = orderQuery.getDetail();
     assertThat(detail.getChunk("customer", false).getSelectProperties())
@@ -144,16 +145,16 @@ public class SpiBeanTypeTest {
 
   @Test(expected = IllegalStateException.class)
   public void docStoreIndex() throws Exception {
-    beanType(Order.class).docStoreIndex(1, new Order(), null);
+    beanType(Order.class).docStore().index(1, new Order(), null);
   }
 
   @Test(expected = IllegalStateException.class)
   public void docStoreDeleteById() throws Exception {
-    beanType(Order.class).docStoreDeleteById(1, null);
+    beanType(Order.class).docStore().deleteById(1, null);
   }
 
   @Test(expected = IllegalStateException.class)
   public void docStoreUpdateEmbedded() throws Exception {
-    beanType(Order.class).docStoreUpdateEmbedded(1, "customer", "someJson", null);
+    beanType(Order.class).docStore().updateEmbedded(1, "customer", "someJson", null);
   }
 }

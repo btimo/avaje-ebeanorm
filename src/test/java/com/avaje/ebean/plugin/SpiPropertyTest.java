@@ -14,7 +14,7 @@ public class SpiPropertyTest {
 
   static EbeanServer server = Ebean.getDefaultServer();
 
-  <T> SpiBeanType<T> beanType(Class<T> cls) {
+  <T> BeanType<T> beanType(Class<T> cls) {
     return server.getPluginApi().getBeanType(cls);
   }
 
@@ -27,10 +27,10 @@ public class SpiPropertyTest {
     order.setCustomer(customer);
     order.setStatus(Order.Status.APPROVED);
 
-    SpiProperty statusProperty = beanType(Order.class).property("status");
+    Property statusProperty = beanType(Order.class).getProperty("status");
     assertThat(statusProperty.getVal(order)).isEqualTo(order.getStatus());
 
-    SpiProperty customerProperty = beanType(Order.class).property("customer");
+    Property customerProperty = beanType(Order.class).getProperty("customer");
     assertThat(customerProperty.getVal(order)).isEqualTo(customer);
   }
 }

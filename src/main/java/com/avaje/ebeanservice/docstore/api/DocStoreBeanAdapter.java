@@ -2,7 +2,7 @@ package com.avaje.ebeanservice.docstore.api;
 
 import com.avaje.ebean.Query;
 import com.avaje.ebean.annotation.DocStoreEvent;
-import com.avaje.ebean.text.PathProperties;
+import com.avaje.ebean.plugin.BeanDocType;
 import com.avaje.ebeaninternal.server.core.PersistRequest;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeanservice.docstore.api.mapping.DocumentMapping;
@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * Doc store specific adapter to process doc store events for a given bean type.
  */
-public interface DocStoreBeanAdapter<T> {
+public interface DocStoreBeanAdapter<T> extends BeanDocType<T> {
 
   /**
    * In deployment phase read the embedded/nested document information.
@@ -23,34 +23,13 @@ public interface DocStoreBeanAdapter<T> {
   /**
    * Register invalidation events for embedded/nested documents the given path and properties.
    */
-  void registerDocStoreInvalidationPath(String queueId, String path, Set<String> properties);
-
-  /**
-   * Process the persist request adding any embedded/nested document invalidation to the docStoreUpdates.
-   * <p>
-   * This is expected to check the specific properties to see what other documents they are nested in
-   * and register invalidation events based on that.
-   *
-   * @param request         The persist request
-   * @param docStoreUpdates Invalidation events are registered to this docStoreUpdates
-   */
-  void docStoreEmbeddedUpdate(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates);
-
-  /**
-   * Return the document structure as PathProperties.
-   */
-  PathProperties docStorePaths();
-
-  /**
-   * Return the nested document for the given path.
-   */
-  PathProperties docStoreNested(String path);
+  void registerInvalidationPath(String queueId, String path, Set<String> properties);
 
   /**
    * Apply the document structure to the query so that it fetches the required properties to build
    * the document (typically in JSON form).
    */
-  void docStoreApplyPath(Query<T> query);
+  void applyPath(Query<T> query);
 
   /**
    * Return true if this type is mapped for doc storage.
@@ -68,7 +47,7 @@ public interface DocStoreBeanAdapter<T> {
    * <p>
    * Some transactions (like bulk updates) might specifically turn off indexing for example.
    */
-  DocStoreEvent getDocStoreEvent(PersistRequest.Type persistType, DocStoreEvent txnMode);
+  DocStoreEvent getEvent(PersistRequest.Type persistType, DocStoreEvent txnMode);
 
   /**
    * Return the index type for this bean type.
@@ -101,6 +80,17 @@ public interface DocStoreBeanAdapter<T> {
   void update(Object idValue, PersistRequestBean<T> persistRequest, DocStoreUpdateContext txn) throws IOException;
 
   /**
+   * Process the persist request adding any embedded/nested document invalidation to the docStoreUpdates.
+   * <p>
+   * This is expected to check the specific properties to see what other documents they are nested in
+   * and register invalidation events based on that.
+   *
+   * @param request         The persist request
+   * @param docStoreUpdates Invalidation events are registered to this docStoreUpdates
+   */
+  void updateEmbedded(PersistRequestBean<T> request, DocStoreUpdates docStoreUpdates);
+
+  /**
    * Process an update of an embedded document.
    *
    * @param idValue            the id of the bean effected by an embedded document update
@@ -108,7 +98,7 @@ public interface DocStoreBeanAdapter<T> {
    * @param embeddedRawContent the embedded content for this property in JSON form
    * @param txn                the doc store transaction to use to process the update
    */
-  void update(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException;
+  void updateEmbedded(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException;
 
   /**
    * Create the document mapping.
@@ -122,5 +112,5 @@ public interface DocStoreBeanAdapter<T> {
    * 'raw' property that we can use for sorting etc.
    * </p>
    */
-  String docStoreRawProperty(String property);
+  String rawProperty(String property);
 }

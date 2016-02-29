@@ -2,6 +2,7 @@ package com.avaje.ebeanservice.docstore.api.support;
 
 
 import com.avaje.ebean.BaseTestCase;
+import com.avaje.ebean.Query;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.server.core.PersistRequestBean;
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor;
@@ -34,10 +35,15 @@ public class DocStoreBeanBaseAdapterTest extends BaseTestCase {
     assertThat(adapter.getQueueId()).isEqualTo("order");
   }
 
-  static class TDAdapter<T> extends DocStoreBeanBaseAdapter {
+  static class TDAdapter<T> extends DocStoreBeanBaseAdapter<T> {
 
     TDAdapter(BeanDescriptor<T> desc, DeployBeanDescriptor<T> deploy) {
       super(desc, deploy);
+    }
+
+    @Override
+    public void applyPath(Query<T> query) {
+
     }
 
     @Override
@@ -61,7 +67,7 @@ public class DocStoreBeanBaseAdapterTest extends BaseTestCase {
     }
 
     @Override
-    public void update(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException {
+    public void updateEmbedded(Object idValue, String embeddedProperty, String embeddedRawContent, DocStoreUpdateContext txn) throws IOException {
 
     }
   }

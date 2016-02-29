@@ -9,8 +9,8 @@ import com.avaje.ebean.bean.ObjectGraphOrigin;
 import com.avaje.ebean.bean.PersistenceContext;
 import com.avaje.ebean.event.BeanQueryRequest;
 import com.avaje.ebean.event.readaudit.ReadEvent;
-import com.avaje.ebean.plugin.SpiBeanType;
-import com.avaje.ebean.text.PathProperties;
+import com.avaje.ebean.plugin.BeanType;
+import com.avaje.ebean.FetchPath;
 import com.avaje.ebean.text.json.JsonContext;
 import com.avaje.ebeaninternal.api.BindParams;
 import com.avaje.ebeaninternal.api.HashQuery;
@@ -297,7 +297,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
     JsonGenerator generator = json.createGenerator(sw);
 
-    SpiBeanType<T> beanType = server.getPluginApi().getBeanType(this.beanType);
+    BeanType<T> beanType = server.getPluginApi().getBeanType(this.beanType);
     ElasticExpressionContext context = new ElasticExpressionContext(generator, beanType);
 
     try {
@@ -342,7 +342,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   }
 
   @Override
-  public Query<T> apply(PathProperties pathProperties) {
+  public Query<T> apply(FetchPath pathProperties) {
     pathProperties.apply(this);
     return this;
   }
@@ -1496,7 +1496,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   /**
    * Validate all the expression properties/paths given the bean descriptor.
    */
-  public Set<String> validate(SpiBeanType<T> desc) {
+  public Set<String> validate(BeanType<T> desc) {
 
     SpiExpressionValidation validation = new SpiExpressionValidation(desc);
     if (whereExpressions != null) {

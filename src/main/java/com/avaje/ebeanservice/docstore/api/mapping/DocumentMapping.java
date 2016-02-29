@@ -1,6 +1,6 @@
 package com.avaje.ebeanservice.docstore.api.mapping;
 
-import com.avaje.ebean.text.PathProperties;
+import com.avaje.ebean.FetchPath;
 
 /**
  * Mapping for a document stored in a doc store (like ElasticSearch).
@@ -13,7 +13,7 @@ public class DocumentMapping {
 
   protected final String type;
 
-  protected final PathProperties paths;
+  protected final FetchPath paths;
 
   protected final DocPropertyMapping properties;
 
@@ -21,7 +21,7 @@ public class DocumentMapping {
 
   protected int replicas;
 
-  public DocumentMapping(String queueId, String name, String type, PathProperties paths, DocPropertyMapping properties, int shards, int replicas) {
+  public DocumentMapping(String queueId, String name, String type, FetchPath paths, DocPropertyMapping properties, int shards, int replicas) {
     this.queueId = queueId;
     this.name = name;
     this.type = type;
@@ -62,7 +62,7 @@ public class DocumentMapping {
   /**
    * Return the document structure as PathProperties.
    */
-  public PathProperties getPaths() {
+  public FetchPath getPaths() {
     return paths;
   }
 

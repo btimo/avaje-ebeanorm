@@ -3,7 +3,7 @@ package com.avaje.ebean.plugin;
 /**
  * Property of a entity bean that can be read.
  */
-public interface SpiProperty {
+public interface Property {
 
   /**
    * Return the name of the property.

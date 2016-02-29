@@ -28,7 +28,7 @@ public class DocMappingBuilder {
   public DocMappingBuilder(PathProperties paths, DocStore docStore) {
     this.paths = paths;
     this.docStore = docStore;
-    properties.push(new DocPropertyMapping());
+    this.properties.push(new DocPropertyMapping());
   }
 
   /**
@@ -114,15 +114,17 @@ public class DocMappingBuilder {
 
     int shards = docStore.shards();
     int replicas = docStore.replicas();
-
     DocPropertyMapping root = properties.peek();
     return new DocumentMapping(queueId, indexName, indexType, paths, root, shards, replicas);
   }
 
 
-  static class SortableVisitor extends DocPropertyAdapter {
+  /**
+   * Find sortable properties to build the mapping to 'raw' properties.
+   */
+  private static class SortableVisitor extends DocPropertyAdapter {
 
-    Map<String,String> sortableMap = new LinkedHashMap<String, String>();
+    private Map<String,String> sortableMap = new LinkedHashMap<String, String>();
 
     @Override
     public void visitProperty(DocPropertyMapping property) {
@@ -132,10 +134,9 @@ public class DocMappingBuilder {
         String fullPath = pathStack.peekFullPath(property.getName());
         sortableMap.put(fullPath, fullPath+".raw");
       }
-
     }
 
-    public Map<String, String> getSortableMap() {
+    private Map<String, String> getSortableMap() {
       return sortableMap;
     }
   }
