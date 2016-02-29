@@ -70,7 +70,7 @@ public class NoneDocStore implements DocumentStore {
   }
 
   @Override
-  public void process(List<DocStoreQueueEntry> queueEntries) throws IOException {
+  public long process(List<DocStoreQueueEntry> queueEntries) throws IOException {
     throw implementationNotInClassPath();
   }
 }

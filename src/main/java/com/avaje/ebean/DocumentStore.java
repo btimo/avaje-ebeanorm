@@ -65,7 +65,7 @@ public interface DocumentStore {
   /**
    * Process the queue entries.
    */
-  void process(List<DocStoreQueueEntry> queueEntries) throws IOException;
+  long process(List<DocStoreQueueEntry> queueEntries) throws IOException;
 
   /**
    * Drop the index.
