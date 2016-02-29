@@ -18,6 +18,11 @@ public class NoneDocStoreBeanAdapter<T> extends DocStoreBeanBaseAdapter<T> {
   }
 
   @Override
+  public boolean isMapped() {
+    return false;
+  }
+
+  @Override
   public void deleteById(Object idValue, DocStoreUpdateContext txn) throws IOException {
     throw NoneDocStore.implementationNotInClassPath();
   }

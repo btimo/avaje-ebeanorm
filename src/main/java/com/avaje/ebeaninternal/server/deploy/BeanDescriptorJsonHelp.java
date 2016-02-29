@@ -172,7 +172,7 @@ public class BeanDescriptorJsonHelp<T> {
     Object id = desc.beanId(bean);
     if (id != null) {
       // check if the bean has already been loaded
-      contextBean = readJson.persistenceContextPutIfAbsent(id, bean);
+      contextBean = readJson.persistenceContextPutIfAbsent(id, bean, desc);
     }
     if (contextBean == null) {
       readJson.beanVisitor(bean, unmappedProperties);

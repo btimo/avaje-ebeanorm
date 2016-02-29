@@ -1341,6 +1341,10 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
       throw new PersistenceException("maxRows must be specified for findPagedList() query");
     }
 
+    if (spiQuery.isUseDocStore()) {
+      return docStore().findPagedList(query);
+    }
+
     return new LimitOffsetPagedList<T>(this, spiQuery);
   }
 
@@ -1397,6 +1401,9 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     Object result = request.getFromQueryCache();
     if (result != null) {
       return (List<T>) result;
+    }
+    if (request.isUseDocStore()) {
+      return docStore().findList(query);
     }
 
     try {

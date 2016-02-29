@@ -533,8 +533,11 @@ public class OrmQueryDetail implements Serializable {
     }
 
     if (hasSelectClause()) {
-      for (String propName : baseProps.getIncluded()) {
-        fields.add(propName);
+      Set<String> included = baseProps.getIncluded();
+      if (included != null) {
+        for (String propName : included) {
+          fields.add(propName);
+        }
       }
     }
 

@@ -35,6 +35,7 @@ import com.avaje.ebean.plugin.ExpressionPath;
 import com.avaje.ebean.plugin.Property;
 import com.avaje.ebean.text.json.JsonReadOptions;
 import com.avaje.ebeaninternal.api.CQueryPlanKey;
+import com.avaje.ebeaninternal.api.LoadContext;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.api.SpiQuery;
 import com.avaje.ebeaninternal.api.SpiTransaction;
@@ -690,6 +691,9 @@ public class BeanDescriptor<T> implements MetaBeanInfo, BeanType<T> {
    * Initialise the document mapping.
    */
   public void initialiseDocMapping() {
+    for (int i = 0; i < propertiesMany.length; i++) {
+      propertiesMany[i].initialisePostTarget();
+    }
     docMapping = docStoreAdapter.createDocMapping();
   }
 
@@ -1740,6 +1744,27 @@ public class BeanDescriptor<T> implements MetaBeanInfo, BeanType<T> {
   }
 
   /**
+   * Register all the assoc many properties on this bean that are not populated with the load context.
+   * <p>
+   *   This provides further lazy loading via the load context.
+   * </p>
+   */
+  public void lazyLoadRegister(String prefix, EntityBeanIntercept ebi, EntityBean bean, LoadContext loadContext) {
+
+    // load the List/Set/Map proxy objects (deferred fetching of lists)
+    BeanPropertyAssocMany<?>[] manys = propertiesMany();
+    for (int i = 0; i < manys.length; i++) {
+      if (!ebi.isLoadedProperty(manys[i].getPropertyIndex())) {
+        BeanCollection<?> ref = manys[i].createReferenceIfNull(bean);
+        if (ref != null && !ref.isRegisteredWithLoadContext()) {
+          String path = SplitName.add(prefix, manys[i].getName());
+          loadContext.register(path, ref);
+        }
+      }
+    }
+  }
+
+  /**
    * Return true if the lazy loading property is a Many in which case just
    * define a Reference for the collection and not invoke a query.
    */
@@ -2637,7 +2662,7 @@ public class BeanDescriptor<T> implements MetaBeanInfo, BeanType<T> {
 
   @Override
   public T jsonRead(JsonParser parser, JsonReadOptions readOptions, Object objectMapper) throws IOException {
-    ReadJson jsonRead = new ReadJson(parser, readOptions, objectMapper);
+    ReadJson jsonRead = new ReadJson(this, parser, readOptions, objectMapper);
     return jsonRead(jsonRead, null);
   }
 }

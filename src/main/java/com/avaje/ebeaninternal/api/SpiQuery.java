@@ -146,6 +146,11 @@ public interface SpiQuery<T> extends Query<T> {
   BeanDescriptor<T> getBeanDescriptor();
 
   /**
+   * Return true if this query should be executed against the doc store.
+   */
+  boolean isUseDocStore();
+
+  /**
    * Return the PersistenceContextScope that this query should use.
    * <p>
    * This can be null and in that case use the default scope.
@@ -293,7 +298,7 @@ public interface SpiQuery<T> extends Query<T> {
   /**
    * Return the lazy loading 'many' property.
    */
-  BeanPropertyAssocMany<?> getLazyLoadForParentsProperty();
+  BeanPropertyAssocMany<?> getLazyLoadMany();
 
   /**
    * Set the load mode (+lazy or +query) and the load description.
@@ -651,9 +656,9 @@ public interface SpiQuery<T> extends Query<T> {
    */
   boolean isDisableReadAudit();
 
-    /**
-     * Return true if this is a query executing in the background.
-     */
+  /**
+   * Return true if this is a query executing in the background.
+   */
   boolean isFutureFetch();
 
   /**

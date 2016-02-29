@@ -2,8 +2,8 @@ package com.avaje.ebean.plugin;
 
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.EbeanServer;
-import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebean.FetchPath;
+import com.avaje.ebean.text.PathProperties;
 import com.avaje.ebeaninternal.api.SpiQuery;
 import com.avaje.ebeaninternal.server.querydefn.OrmQueryDetail;
 import com.avaje.tests.model.basic.Customer;
@@ -97,8 +97,34 @@ public class SpiBeanTypeTest {
   @Test
   public void isDocStoreIndex() throws Exception {
 
-    assertThat(beanType(Order.class).isDocStoreMapped()).isTrue();
+    assertThat(beanType(Order.class).isDocStoreMapped()).isFalse();
     assertThat(beanType(Person.class).isDocStoreMapped()).isFalse();
+
+    assertThat(beanType(Order.class).getDocMapping()).isNotNull();
+    assertThat(beanType(Person.class).getDocMapping()).isNull();
+  }
+
+  @Test
+  public void docStore_getEmbedded() throws Exception {
+
+    BeanDocType<Order> orderDocType = beanType(Order.class).docStore();
+    FetchPath customer = orderDocType.getEmbedded("customer");
+    assertThat(customer).isNotNull();
+    assertThat(customer.getProperties(null)).contains("id","name");
+  }
+
+  @Test
+  public void docStore_getEmbeddedManyRoot() throws Exception {
+
+    BeanDocType<Order> orderDocType = beanType(Order.class).docStore();
+
+    FetchPath detailsPath = orderDocType.getEmbedded("details");
+    assertThat(detailsPath).isNotNull();
+
+    FetchPath detailsRoot = orderDocType.getEmbeddedManyRoot("details");
+    assertThat(detailsRoot).isNotNull();
+    assertThat(detailsRoot.getProperties(null)).containsExactly("id", "details");
+    assertThat(detailsRoot.hasPath("details")).isTrue();
   }
 
   @Test

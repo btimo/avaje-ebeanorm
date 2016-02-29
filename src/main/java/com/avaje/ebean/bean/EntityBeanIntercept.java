@@ -220,6 +220,18 @@ public final class EntityBeanIntercept implements Serializable {
   }
 
   /**
+   * Check each property to see if the bean is partially loaded.
+   */
+  public boolean isPartial() {
+    for (int i = 0; i < loadedProps.length; i++) {
+      if (!loadedProps[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Return true if this bean has been directly modified (it has oldValues) or
    * if any embedded beans are either new or dirty (and hence need saving).
    */

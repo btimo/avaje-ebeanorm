@@ -3,6 +3,7 @@ package com.avaje.ebean.text.json;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.EbeanServer;
 import com.avaje.ebean.text.PathProperties;
+import com.avaje.tests.model.basic.Contact;
 import com.avaje.tests.model.basic.Customer;
 import com.avaje.tests.model.basic.Order;
 import com.avaje.tests.model.basic.ResetBasicData;
@@ -55,6 +56,31 @@ public class JsonContextTest {
       } else {
         assertThat(tempCustomer).isSameAs(customer);
       }
+    }
+  }
+
+  @Test
+  public void test_json_loadContext() {
+
+    ResetBasicData.reset();
+
+    List<Order> orders = Ebean.find(Order.class)
+        .select("status")
+        .fetch("customer", "id, name")
+        .findList();
+
+    String json = Ebean.json().toJson(orders);
+
+    JsonReadOptions options = new JsonReadOptions().setEnableLazyLoading(true);
+
+    List<Order> orders1 = Ebean.json().toList(Order.class, json, options);
+
+    for (Order order : orders1) {
+      Customer customer = order.getCustomer();
+      customer.getName();
+      customer.getSmallnote();
+      List<Contact> contacts = customer.getContacts();
+      contacts.size();
     }
   }
 

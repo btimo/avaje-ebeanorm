@@ -1,6 +1,10 @@
 package com.avaje.ebeaninternal.server.deploy;
 
-import com.avaje.ebean.*;
+import com.avaje.ebean.EbeanServer;
+import com.avaje.ebean.Expression;
+import com.avaje.ebean.Query;
+import com.avaje.ebean.SqlUpdate;
+import com.avaje.ebean.Transaction;
 import com.avaje.ebean.bean.BeanCollection;
 import com.avaje.ebean.bean.BeanCollection.ModifyListenMode;
 import com.avaje.ebean.bean.BeanCollectionAdd;
@@ -92,6 +96,8 @@ public class BeanPropertyAssocMany<T> extends BeanPropertyAssoc<T> {
    */
   protected BeanPropertyAssocOne<?> childMasterProperty;
 
+  private String childMasterIdProperty;
+
   private boolean embeddedExportedProperties;
 
   private BeanCollectionHelp<T> help;
@@ -177,6 +183,16 @@ public class BeanPropertyAssocMany<T> extends BeanPropertyAssoc<T> {
       }
       deleteByParentIdSql = delStmt + deriveWhereParentIdSql(false, "");
       deleteByParentIdInSql = delStmt + deriveWhereParentIdSql(true, "");
+    }
+  }
+
+  /**
+   * Initialise after the target bean descriptors have been all set.
+   */
+  public void initialisePostTarget() {
+    if (childMasterProperty != null) {
+      BeanProperty masterId = childMasterProperty.getTargetDescriptor().getIdProperty();
+      childMasterIdProperty = childMasterProperty.getName() + "." + masterId.getName();
     }
   }
 
@@ -289,9 +305,28 @@ public class BeanPropertyAssocMany<T> extends BeanPropertyAssoc<T> {
   }
 
   /**
+   * Add the loaded current bean to its associated parent.
+   */
+  public void lazyLoadMany(EntityBean current) {
+    EntityBean parentBean = childMasterProperty.getValueAsEntityBean(current);
+    if (parentBean != null) {
+      addBeanToCollectionWithCreate(parentBean, current, true);
+    }
+  }
+
+  public void addWhereParentIdIn(SpiQuery<?> query, List<Object> parentIds, boolean useDocStore) {
+    if (useDocStore) {
+      // assumes the ManyToOne property is included
+      query.where().in(childMasterIdProperty, parentIds);
+    } else {
+      addWhereParentIdIn(query, parentIds);
+    }
+  }
+
+  /**
    * Add a where clause to the query for a given list of parent Id's.
    */
-  public void addWhereParentIdIn(SpiQuery<?> query, List<Object> parentIds) {
+  private void addWhereParentIdIn(SpiQuery<?> query, List<Object> parentIds) {
 
     String tableAlias = manyToMany ? "int_." : "t0.";
     if (manyToMany) {
@@ -914,6 +949,7 @@ public class BeanPropertyAssocMany<T> extends BeanPropertyAssoc<T> {
     jsonHelp.jsonRead(readJson, parentBean);
   }
 
+  @SuppressWarnings("unchecked")
   public void publishMany(EntityBean draft, EntityBean live) {
 
     // collections will not be null due to enhancement

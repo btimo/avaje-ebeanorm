@@ -245,6 +245,8 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
   private RawSql rawSql;
 
+  private boolean useDocStore;
+
   public DefaultOrmQuery(BeanDescriptor<T> desc, EbeanServer server, ExpressionFactory expressionFactory, String query) {
     this.beanDescriptor = desc;
     this.beanType = desc.getBeanType();
@@ -325,11 +327,21 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
     json.writeFieldName("query");
     json.writeStartObject();
 
-    if (whereExpressions != null && !whereExpressions.isEmpty()) {
+    SpiExpression idEquals = null;
+    if (id != null) {
+      idEquals = (SpiExpression)expressionFactory.idEq(id);
+    }
+
+    boolean hasWhere = (whereExpressions != null && !whereExpressions.isEmpty());
+    if (idEquals != null || hasWhere) {
       json.writeFieldName("filtered");
       json.writeStartObject();
       json.writeFieldName("filter");
-      whereExpressions.writeElastic(context);
+      if (hasWhere) {
+        whereExpressions.writeElastic(context, idEquals);
+      } else {
+        idEquals.writeElastic(context);
+      }
       json.writeEndObject();
     } else {
       json.writeObjectFieldStart("match_all");
@@ -347,6 +359,17 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   @Override
   public boolean isAutoTunable() {
     return beanDescriptor.isAutoTunable() && !isSqlSelect();
+  }
+
+  @Override
+  public Query<T> setUseDocStore(boolean useDocStore) {
+    this.useDocStore = useDocStore;
+    return this;
+  }
+
+  @Override
+  public boolean isUseDocStore() {
+    return useDocStore;
   }
 
   @Override
@@ -729,7 +752,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   }
 
   @Override
-  public BeanPropertyAssocMany<?> getLazyLoadForParentsProperty() {
+  public BeanPropertyAssocMany<?> getLazyLoadMany() {
     return lazyLoadForParentsProperty;
   }
 

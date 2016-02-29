@@ -131,6 +131,11 @@ public final class OrmQueryRequest<T> extends BeanRequest implements BeanQueryRe
     return loadContext;
   }
 
+  @Override
+  public boolean isUseDocStore() {
+    return query.isUseDocStore();
+  }
+
   /**
    * Run BeanQueryAdapter preQuery() if needed.
    */

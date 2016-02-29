@@ -1286,6 +1286,14 @@ public interface Query<T> {
   Query<T> setUseQueryCache(boolean useQueryCache);
 
   /**
+   * Set to true if this query should execute against the doc store.
+   * <p>
+   *   When setting this you may also consider disabling lazy loading.
+   * </p>
+   */
+  Query<T> setUseDocStore(boolean useDocStore);
+
+  /**
    * When set to true when you want the returned beans to be read only.
    */
   Query<T> setReadOnly(boolean readOnly);
