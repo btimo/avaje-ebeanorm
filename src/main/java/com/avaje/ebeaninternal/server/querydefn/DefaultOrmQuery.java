@@ -48,29 +48,27 @@ import java.util.Set;
  */
 public class DefaultOrmQuery<T> implements SpiQuery<T> {
 
-  private static final long serialVersionUID = 6838006264714672460L;
-
   private final Class<T> beanType;
 
-  private transient final EbeanServer server;
+  private final BeanDescriptor<T> beanDescriptor;
 
-  private transient BeanCollectionTouched beanCollectionTouched;
+  private final EbeanServer server;
 
-  private transient final ExpressionFactory expressionFactory;
+  private BeanCollectionTouched beanCollectionTouched;
+
+  private final ExpressionFactory expressionFactory;
 
   /**
    * For lazy loading of ManyToMany we need to add a join to the intersection table. This is that
    * join to the intersection table.
    */
-  private transient TableJoin includeTableJoin;
+  private TableJoin includeTableJoin;
 
-  private transient ProfilingListener profilingListener;
-
-  private transient BeanDescriptor<T> beanDescriptor;
+  private ProfilingListener profilingListener;
 
   private boolean cancelled;
 
-  private transient CancelableQuery cancelableQuery;
+  private CancelableQuery cancelableQuery;
 
   /**
    * The name of the query.
@@ -241,7 +239,7 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
    */
   private CQueryPlanKey queryPlanKey;
 
-  private transient PersistenceContext persistenceContext;
+  private PersistenceContext persistenceContext;
 
   private ManyWhereJoins manyWhereJoins;
 
@@ -342,6 +340,16 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   }
 
   @Override
+  public BeanDescriptor<T> getBeanDescriptor() {
+    return beanDescriptor;
+  }
+
+  @Override
+  public boolean isAutoTunable() {
+    return beanDescriptor.isAutoTunable() && !isSqlSelect();
+  }
+
+  @Override
   public Query<T> apply(FetchPath fetchPath) {
     fetchPath.apply(this);
     return this;
@@ -394,13 +402,6 @@ public class DefaultOrmQuery<T> implements SpiQuery<T> {
   public Query<T> includeSoftDeletes() {
     this.temporalMode = TemporalMode.SOFT_DELETED;
     return this;
-  }
-
-  /**
-   * Set the BeanDescriptor for the root type of this query.
-   */
-  public void setBeanDescriptor(BeanDescriptor<T> beanDescriptor) {
-    this.beanDescriptor = beanDescriptor;
   }
 
   public RawSql getRawSql() {

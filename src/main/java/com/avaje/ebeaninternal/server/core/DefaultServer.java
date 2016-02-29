@@ -1048,15 +1048,12 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     SpiQuery<T> spiQuery = (SpiQuery<T>) query;
     spiQuery.setType(type);
 
-    BeanDescriptor<T> desc = beanDescriptorManager.getBeanDescriptor(spiQuery.getBeanType());
-    spiQuery.setBeanDescriptor(desc);
-
-    return createQueryRequest(desc, spiQuery, t);
+    return createQueryRequest(spiQuery, t);
   }
 
-  private <T> SpiOrmQueryRequest<T> createQueryRequest(BeanDescriptor<T> desc, SpiQuery<T> query, Transaction t) {
+  private <T> SpiOrmQueryRequest<T> createQueryRequest(SpiQuery<T> query, Transaction t) {
 
-    if (desc.isAutoTunable() && !query.isSqlSelect() && !autoTuneService.tuneQuery(query)) {
+    if (query.isAutoTunable() && !autoTuneService.tuneQuery(query)) {
       // use deployment FetchType.LAZY/EAGER annotations
       // to define the 'default' select clause
       query.setDefaultSelectClause();
@@ -1069,7 +1066,7 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
       query.setOrigin(createCallStack());
     }
 
-    OrmQueryRequest<T> request = new OrmQueryRequest<T>(this, queryEngine, query, desc, (SpiTransaction) t);
+    OrmQueryRequest<T> request = new OrmQueryRequest<T>(this, queryEngine, query, (SpiTransaction) t);
     request.prepareQuery();
 
     return request;
@@ -1079,7 +1076,7 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
    * Try to get the object out of the persistence context.
    */
   @SuppressWarnings("unchecked")
-  private <T> T findIdCheckPersistenceContextAndCache(Transaction transaction, BeanDescriptor<T> beanDescriptor, SpiQuery<T> query) {
+  private <T> T findIdCheckPersistenceContextAndCache(Transaction transaction, SpiQuery<T> query) {
 
     SpiTransaction t = (SpiTransaction) transaction;
     if (t == null) {
@@ -1090,7 +1087,7 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
       // first look in the transaction scoped persistence context
       context = t.getPersistenceContext();
       if (context != null) {
-        WithOption o = context.getWithOption(beanDescriptor.getBeanType(), query.getId());
+        WithOption o = context.getWithOption(query.getBeanType(), query.getId());
         if (o != null) {
           if (o.isDeleted()) {
             // Bean was previously deleted in the same transaction / persistence context
@@ -1102,13 +1099,14 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
       }
     }
 
-    if (!beanDescriptor.calculateUseCache(query.isUseBeanCache())) {
+    BeanDescriptor<T> desc = query.getBeanDescriptor();
+    if (!desc.calculateUseCache(query.isUseBeanCache())) {
       // not using bean cache
       return null;
     }
 
     // Hit the L2 bean cache
-    return beanDescriptor.cacheBeanGet(query, context);
+    return desc.cacheBeanGet(query, context);
   }
 
   /**
@@ -1132,19 +1130,16 @@ public final class DefaultServer implements SpiServer, SpiEbeanServer {
     SpiQuery<T> spiQuery = (SpiQuery<T>) query;
     spiQuery.setType(Type.BEAN);
 
-    BeanDescriptor<T> desc = beanDescriptorManager.getBeanDescriptor(spiQuery.getBeanType());
-    spiQuery.setBeanDescriptor(desc);
-
     if (SpiQuery.Mode.NORMAL.equals(spiQuery.getMode()) && !spiQuery.isLoadBeanCache()) {
       // See if we can skip doing the fetch completely by getting the bean from the
       // persistence context or the bean cache
-      T bean = findIdCheckPersistenceContextAndCache(t, desc, spiQuery);
+      T bean = findIdCheckPersistenceContextAndCache(t, spiQuery);
       if (bean != null) {
         return bean;
       }
     }
 
-    SpiOrmQueryRequest<T> request = createQueryRequest(desc, spiQuery, t);
+    SpiOrmQueryRequest<T> request = createQueryRequest(spiQuery, t);
     try {
       request.initTransIfRequired();
       return (T) request.findId();

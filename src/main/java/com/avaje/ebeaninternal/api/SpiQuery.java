@@ -136,6 +136,16 @@ public interface SpiQuery<T> extends Query<T> {
   void writeElastic(ElasticExpressionContext context) throws IOException;
 
   /**
+   * Return true if AutoTune should be attempted on this query.
+   */
+  boolean isAutoTunable();
+
+  /**
+   * Return the bean descriptor for this query.
+   */
+  BeanDescriptor<T> getBeanDescriptor();
+
+  /**
    * Return the PersistenceContextScope that this query should use.
    * <p>
    * This can be null and in that case use the default scope.
@@ -289,11 +299,6 @@ public interface SpiQuery<T> extends Query<T> {
    * Set the load mode (+lazy or +query) and the load description.
    */
   void setLoadDescription(String loadMode, String loadDescription);
-
-  /**
-   * Set the BeanDescriptor for the root type of this query.
-   */
-  void setBeanDescriptor(BeanDescriptor<T> desc);
 
   /**
    * Return the joins required to support predicates on the many properties.

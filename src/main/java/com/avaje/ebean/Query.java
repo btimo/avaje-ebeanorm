@@ -274,7 +274,7 @@ import java.util.Set;
  * @param <T>
  *          the type of Entity bean this query will fetch.
  */
-public interface Query<T> extends Serializable {
+public interface Query<T> {
 
   /**
    * Return the RawSql that was set to use for this query.
