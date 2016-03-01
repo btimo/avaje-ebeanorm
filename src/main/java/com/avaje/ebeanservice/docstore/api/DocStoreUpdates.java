@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Collection of document store updates that are either queued for future processing
- * or sent to the document store.
+ * Collection of document store updates that are either sent to the document store
+ * or queued for future processing
  */
 public class DocStoreUpdates {
 
@@ -23,6 +23,11 @@ public class DocStoreUpdates {
   private final List<DocStoreUpdate> deleteEvents = new ArrayList<DocStoreUpdate>();
 
   /**
+   * Nested updates.
+   */
+  private final List<DocStoreQueueEntry> nestedEvents = new ArrayList<DocStoreQueueEntry>();
+
+  /**
    * Entries sent to the queue for later processing.
    */
   private final List<DocStoreQueueEntry> queueEntries = new ArrayList<DocStoreQueueEntry>();
@@ -35,41 +40,46 @@ public class DocStoreUpdates {
    * Return true if there are no events to process.
    */
   public boolean isEmpty() {
-    return persistEvents.isEmpty() && deleteEvents.isEmpty() && queueEntries.isEmpty();
+    return persistEvents.isEmpty() && deleteEvents.isEmpty() && nestedEvents.isEmpty() && queueEntries.isEmpty();
   }
 
   /**
-   * Add a request for processing via ElasticSearch Bulk API.
+   * Add a persist request.
    */
   public void addPersist(DocStoreUpdate bulkRequest) {
     persistEvents.add(bulkRequest);
   }
 
   /**
-   * Add a request for processing via ElasticSearch Bulk API.
+   * Add a delete request.
    */
   public void addDelete(DocStoreUpdate bulkRequest) {
     deleteEvents.add(bulkRequest);
   }
 
   /**
-   * Add a 'queue index update' request.
-   * This is for submitting to a queue for later processing.
+   * Add a nested update.
+   */
+  public void addNested(String queueId, String path, Object beanId) {
+    nestedEvents.add(new DocStoreQueueEntry(Action.NESTED, queueId, path, beanId));
+  }
+
+  /**
+   * Queue an 'index' request.
    */
   public void queueIndex(String queueId, Object beanId) {
     queueEntries.add(new DocStoreQueueEntry(Action.INDEX, queueId, beanId));
   }
 
   /**
-   * Add a 'queue index delete' request.
-   * This is for submitting to a queue for later processing.
+   * Queue a 'delete' request.
    */
   public void queueDelete(String queueId, Object beanId) {
     queueEntries.add(new DocStoreQueueEntry(Action.DELETE, queueId, beanId));
   }
 
   /**
-   * Add a queue entry for an invalidation due to an update to a nested/embedded object.
+   * Queue an update to a nested/embedded object.
    */
   public void queueNested(String queueId, String path, Object beanId) {
     queueEntries.add(new DocStoreQueueEntry(Action.NESTED, queueId, path, beanId));
@@ -87,6 +97,13 @@ public class DocStoreUpdates {
    */
   public List<DocStoreUpdate> getDeleteEvents() {
     return deleteEvents;
+  }
+
+  /**
+   * Return the list of nested update events.
+   */
+  public List<DocStoreQueueEntry> getNestedEvents() {
+    return nestedEvents;
   }
 
   /**

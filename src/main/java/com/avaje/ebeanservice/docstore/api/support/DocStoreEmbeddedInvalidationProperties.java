@@ -13,7 +13,7 @@ public final class DocStoreEmbeddedInvalidationProperties extends DocStoreEmbedd
   /**
    * Properties that trigger invalidation.
    */
-  final int[] properties;
+  private final int[] properties;
 
   public DocStoreEmbeddedInvalidationProperties(String queueId, String path, int[] properties) {
     super(queueId, path);
@@ -23,7 +23,7 @@ public final class DocStoreEmbeddedInvalidationProperties extends DocStoreEmbedd
   @Override
   public void embeddedInvalidate(PersistRequestBean<?> request, DocStoreUpdates docStoreUpdates) {
     if (request.hasDirtyProperty(properties)) {
-      docStoreUpdates.queueNested(queueId, path, request.getBeanId());
+      docStoreUpdates.addNested(queueId, path, request.getBeanId());
     }
   }
 
