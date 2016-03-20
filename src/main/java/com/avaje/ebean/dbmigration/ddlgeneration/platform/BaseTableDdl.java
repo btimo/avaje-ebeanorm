@@ -124,6 +124,11 @@ public class BaseTableDdl implements TableDdl {
       writePrimaryKeyConstraint(apply, createTable.getPkName(), toColumnNames(pk));
     }
 
+    // for SQLite, write foreign keys before the end of the create table statement
+    if(platformDdl.getClass().getName().contains("SQLite")){
+      writeForeignKeysConstraint(apply, createTable);
+    }
+
     apply.newLine().append(")");
     addTableCommentInline(apply, createTable);
     apply.endOfStatement();
@@ -151,7 +156,8 @@ public class BaseTableDdl implements TableDdl {
     apply.end();
     writer.dropAll().end();
 
-    writeAddForeignKeys(writer, createTable);
+    if(!platformDdl.getClass().getName().contains("SQLite"))
+      writeAddForeignKeys(writer, createTable);
 
   }
 
@@ -415,6 +421,63 @@ public class BaseTableDdl implements TableDdl {
     buffer.append(",").newLine();
     buffer.append("  constraint ").append(pkName).append(" primary key");
     appendColumns(pkColumns, buffer);
+  }
+
+  /**
+   * SQLite specific
+   */
+  protected void writeForeignKeysConstraint(DdlBuffer buffer, CreateTable createTable) throws IOException {
+
+    String tableName = createTable.getName();
+    List<Column> columns = createTable.getColumn();
+    for (Column column : columns) {
+      String references = column.getReferences();
+      if (hasValue(references)) {
+        writeForeignKeyConstraint(buffer, column);
+      }
+    }
+
+    writeCompoundForeignKeysConstraint(buffer, createTable);
+  }
+
+  protected void writeCompoundForeignKeysConstraint(DdlBuffer buffer, CreateTable createTable) throws IOException {
+
+    String tableName = createTable.getName();
+
+    List<ForeignKey> foreignKey = createTable.getForeignKey();
+    for (ForeignKey key : foreignKey) {
+
+      String refTableName = key.getRefTableName();
+      String[] cols = toColumnNamesSplit(key.getColumnNames());
+      String[] refColumns = toColumnNamesSplit(key.getRefColumnNames());
+
+      writeForeignKeyConstraint(buffer, cols, refTableName, refColumns);
+    }
+  }
+
+  protected void writeForeignKeyConstraint(DdlBuffer buffer, Column column) throws IOException {
+
+    String references = column.getReferences();
+    int pos = references.lastIndexOf('.');
+    if (pos == -1) {
+      throw new IllegalStateException("Expecting period '.' character for table.column split but not found in [" + references + "]");
+    }
+    String refTableName = references.substring(0, pos);
+    String refColumnName = references.substring(pos + 1);
+
+    String[] cols = {column.getName()};
+    String[] refCols = {refColumnName};
+
+    writeForeignKeyConstraint(buffer, cols, refTableName, refCols);
+  }
+
+  protected void writeForeignKeyConstraint(DdlBuffer buffer, String[] columns, String refTable, String[] refColumns) throws IOException {
+
+    buffer.append(",").newLine();
+    buffer.append("  foreign key ");
+    appendColumns(columns, buffer);
+    buffer.append(" references ").append(lowerTableName(refTable)).append(" ");
+    appendColumns(refColumns, buffer);
   }
 
   /**
